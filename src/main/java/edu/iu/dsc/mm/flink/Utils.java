@@ -19,8 +19,8 @@ public class Utils {
         // first matrix rows and second matrix cols
         sum = 0;
         for (int j = 0; j < M; j++) {
-          System.out.println("A index: " + (i * M + j));
-          System.out.format("B index: %d (k=%d, N=%d, j=%d, i=%d)\n", (k * N + j), k, N, j, i);
+          //System.out.println("A index: " + (i * M + j));
+          //System.out.format("B index: %d (k=%d, N=%d, j=%d, i=%d)\n", (k * N + j), k, N, j, i);
           sum += A[i * M + j] * B[k * N + j];
         }
         C[i * D + k] = sum;
