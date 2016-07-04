@@ -3,8 +3,7 @@ package edu.iu.dsc.mm.flink;
 
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.*;
-import org.apache.flink.hadoop.shaded.com.google.common.io
-    .LittleEndianDataInputStream;
+import org.apache.flink.hadoop.shaded.com.google.common.io.LittleEndianDataInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +30,7 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
     final FileSystem fs = this.filePath.getFileSystem();
     final FileStatus file = fs.getFileStatus(this.filePath);
 
-    System.out.println("Min splits: " + minNumSplits);
+    LOG.info("Min splits: " + minNumSplits);
 
     FileInputSplit[] splits = new FileInputSplit[minNumSplits];
     int q = globalColumnCount / minNumSplits;
@@ -44,7 +43,7 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
       if (blocks.length != 1) {
         throw new RuntimeException("File blocks should be 1 for local file system");
       }
-      length = (q + (i < r ? 1 : 0)) * globalColumnCount;
+      length = (q + (i < r ? 1 : 0)) * globalColumnCount * Double.BYTES;
       FileInputSplit fis = new FileInputSplit(i, this.filePath, start, length, blocks[0].getHosts());
       splits[i] = fis;
       start += length;
@@ -62,11 +61,11 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
     long splitLength = getSplitLength();
     int rows = (int) (splitLength / (Double.BYTES * globalColumnCount));
     int splitIndex = this.currentSplit.getSplitNumber();
-    System.out.format("(%d) Split Length: %d\n", splitIndex, splitLength);
+    LOG.info("{} Split Length: {}\n", splitIndex, splitLength);
     int length = (int)(this.splitLength / Double.BYTES);
     block = new MatrixBlock();
 
-    block.setStart((int) this.getSplitStart());
+    block.setStart((int) this.getSplitStart() / (Double.BYTES * globalColumnCount));
     block.setBlockRows(rows);
     block.setIndex(splitIndex);
     block.setMatrixCols(globalColumnCount);
@@ -88,14 +87,13 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
     isRead = true;
     block.setData(reuse);
 
-    System.out.println("Block print: " + splitIndex + "->" + block.toString());
+    LOG.info("Block print: " + splitIndex + "->" + block.toString());
 
     return block;
   }
 
   @Override
   public void open(FileInputSplit fileSplit) throws IOException {
-    System.out.println("****Opening split");
     // This uses an input stream, later see how to change to
     // memory maps, will have to change nextRecord() method as well
     super.open(fileSplit);

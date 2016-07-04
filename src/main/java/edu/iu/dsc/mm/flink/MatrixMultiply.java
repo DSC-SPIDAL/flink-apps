@@ -5,6 +5,8 @@ import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.util.Collector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -12,6 +14,9 @@ import java.util.Iterator;
 import java.util.List;
 
 public class MatrixMultiply {
+  private static final Logger LOG = LoggerFactory
+      .getLogger(MatrixMultiply.class);
+
   private final static String outFile = "/home/supun/dev/projects/dsspidal/flink_mm/flink-mm-git/out.output";
   private final static String filePath = "/home/supun/dev/projects/dsspidal/flink_mm/flink-mm-git/out.input";
 
@@ -20,8 +25,8 @@ public class MatrixMultiply {
 
     final List<MatrixBlock> matrixABlocks = new ArrayList<MatrixBlock>();
     int noBlocks = 2;
-    int matrixRows = 8;
-    int matrixCols = 8;
+    int matrixRows = 10;
+    int matrixCols = 10;
     System.out.println("A");
     double []data = new double[matrixCols * matrixRows];
     int index = 0;
@@ -53,7 +58,7 @@ public class MatrixMultiply {
       matrixB.data[i] = i;
     }
     System.out.println("B");
-    System.out.println(matrixB);
+    System.out.println(matrixB.toString());
 
     MatrixInputFormat inputFormat = new MatrixInputFormat();
     inputFormat.setBigEndian(true);
@@ -92,7 +97,7 @@ public class MatrixMultiply {
         b.matrixRows = matrixABlock.matrixRows;
         b.matrixCols = matrixB.cols;
         // start of this block calculated using the A's cols
-        b.start = matrixABlock.start * matrixB.cols / matrixABlock.getMatrixCols();
+        b.start = matrixABlock.start;
 
         System.out.format("After multiply: (%d) = %s\n", matrixABlock.index, b.toString());
 
@@ -102,6 +107,8 @@ public class MatrixMultiply {
       @Override
       public void reduce(Iterable<MatrixBlock> iterable, Collector<Matrix> collector) throws Exception {
         Matrix m = new Matrix();
+        m.setColumnMajor(false);
+
         boolean init = false;
         Iterator<MatrixBlock> b = iterable.iterator();
         while (b.hasNext()) {
@@ -115,7 +122,7 @@ public class MatrixMultiply {
           System.out.format("Reduce matrix index: %d = %s\n", matrixBlock.index, matrixBlock.toString());
           System.out.format("m size=(%d X %d) block is=%d block rows=%d\n", m.rows, m.cols, matrixBlock.index, matrixBlock.blockRows);
           System.out.format("index is=%d lenght is=%d\n", matrixBlock.index * matrixBlock.blockRows, matrixBlock.blockRows * matrixBlock.matrixCols);
-          System.arraycopy(matrixBlock.data, 0, m.data, matrixBlock.start, matrixBlock.blockRows * matrixBlock.matrixCols);
+          System.arraycopy(matrixBlock.data, 0, m.data, matrixBlock.start * m.cols, matrixBlock.blockRows * matrixBlock.matrixCols);
         }
         collector.collect(m);
       }

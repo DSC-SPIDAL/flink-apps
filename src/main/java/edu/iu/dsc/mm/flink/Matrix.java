@@ -12,6 +12,8 @@ public class Matrix implements Serializable {
   // cols should be small
   int cols;
 
+  boolean columnMajor = true;
+
   public Matrix() {
   }
 
@@ -19,6 +21,20 @@ public class Matrix implements Serializable {
     this.rows = rows;
     this.cols = cols;
     this.data = new double[rows * cols];
+  }
+
+  public Matrix(int rows, int cols, boolean columnMajor) {
+    this.rows = rows;
+    this.cols = cols;
+    this.columnMajor = columnMajor;
+  }
+
+  public boolean isColumnMajor() {
+    return columnMajor;
+  }
+
+  public void setColumnMajor(boolean columnMajor) {
+    this.columnMajor = columnMajor;
   }
 
   public double[] getData() {
@@ -48,11 +64,20 @@ public class Matrix implements Serializable {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("");
-    for (int i = 0; i < rows; i++) {
-      for (int j = 0; j < cols; j++) {
-        sb.append(data[i + rows * j]).append(" ");
+    if (columnMajor) {
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          sb.append(data[i + rows * j]).append(" ");
+        }
+        sb.append("\n");
       }
-      sb.append("\n");
+    } else {
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          sb.append(data[i * cols + j]).append(" ");
+        }
+        sb.append("\n");
+      }
     }
     return sb.toString();
   }
