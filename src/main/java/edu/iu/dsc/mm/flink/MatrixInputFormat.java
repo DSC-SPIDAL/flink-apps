@@ -21,6 +21,7 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
 
   private boolean isBigEndian = true;
   private int globalColumnCount;
+  private int globalRowCount;
 
   private boolean isRead = false;
 
@@ -69,7 +70,7 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
     block.setBlockRows(rows);
     block.setIndex(splitIndex);
     block.setMatrixCols(globalColumnCount);
-    block.setMatrixRows(globalColumnCount);
+    block.setMatrixRows(globalRowCount);
 
     double[] reuse = new double[(int) (getSplitLength() / Double.BYTES)];
     if (isBigEndian) {
@@ -124,5 +125,13 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
 
   public void setGlobalColumnCount(int globalColumnCount) {
     this.globalColumnCount = globalColumnCount;
+  }
+
+  public int getGlobalRowCount() {
+    return globalRowCount;
+  }
+
+  public void setGlobalRowCount(int globalRowCount) {
+    this.globalRowCount = globalRowCount;
   }
 }

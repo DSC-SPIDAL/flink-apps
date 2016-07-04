@@ -1,5 +1,8 @@
 package edu.iu.dsc.mm.flink;
 
+import com.google.common.base.Optional;
+import org.apache.commons.cli.*;
+
 public class Utils {
   /**
    *
@@ -51,5 +54,23 @@ public class Utils {
       }
       System.out.format("\n");
     }
+  }
+
+  /**
+   * Parse command line arguments
+   *
+   * @param args Command line arguments
+   * @param opts Command line options
+   * @return An <code>Optional&lt;CommandLine&gt;</code> object
+   */
+  public static Optional<CommandLine> parseCommandLineArguments(
+      String[] args, Options opts) {
+    CommandLineParser optParser = new GnuParser();
+    try {
+      return Optional.fromNullable(optParser.parse(opts, args));
+    } catch (ParseException e) {
+      System.out.println(e);
+    }
+    return Optional.fromNullable(null);
   }
 }

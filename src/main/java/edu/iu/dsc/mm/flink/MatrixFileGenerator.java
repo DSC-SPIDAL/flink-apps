@@ -1,17 +1,16 @@
 package edu.iu.dsc.mm.flink;
 
 import com.google.common.base.Optional;
+import com.google.common.io.LittleEndianDataInputStream;
 import com.google.common.io.LittleEndianDataOutputStream;
 import org.apache.commons.cli.*;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutput;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Random;
 
 public class MatrixFileGenerator {
 
@@ -23,26 +22,8 @@ public class MatrixFileGenerator {
     programOptions.addOption("f", true, "File name");
   }
 
-  /**
-   * Parse command line arguments
-   *
-   * @param args Command line arguments
-   * @param opts Command line options
-   * @return An <code>Optional&lt;CommandLine&gt;</code> object
-   */
-  public static Optional<CommandLine> parseCommandLineArguments(
-      String[] args, Options opts) {
-    CommandLineParser optParser = new GnuParser();
-    try {
-      return Optional.fromNullable(optParser.parse(opts, args));
-    } catch (ParseException e) {
-      System.out.println(e);
-    }
-    return Optional.fromNullable(null);
-  }
-
   public static void main(String[] args) throws IOException {
-    Optional<CommandLine> parserResult = parseCommandLineArguments(args, programOptions);
+    Optional<CommandLine> parserResult = Utils.parseCommandLineArguments(args, programOptions);
     if (!parserResult.isPresent()) {
       new HelpFormatter().printHelp("Datagenerator", programOptions);
       return;
@@ -60,6 +41,26 @@ public class MatrixFileGenerator {
   }
 
   public static void writeMatrixFile(
+      int n, int m, boolean isBigEndian, String outFile)
+      throws IOException {
+    Path pointsFile = Paths.get(outFile);
+    Random random = new Random();
+    try (
+        BufferedOutputStream pointBufferedStream = new BufferedOutputStream(
+            Files.newOutputStream(pointsFile, StandardOpenOption.CREATE)))
+    {
+      DataOutput pointStream = isBigEndian ? new DataOutputStream(
+          pointBufferedStream) : new LittleEndianDataOutputStream(
+          pointBufferedStream);
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+          pointStream.writeDouble(random.nextDouble());
+        }
+      }
+    }
+  }
+
+  public static void writeMatrixFile(
       int n, int m, double []data, boolean isBigEndian, String outFile)
       throws IOException {
     Path pointsFile = Paths.get(outFile);
@@ -67,7 +68,6 @@ public class MatrixFileGenerator {
         BufferedOutputStream pointBufferedStream = new BufferedOutputStream(
             Files.newOutputStream(pointsFile, StandardOpenOption.CREATE)))
     {
-      System.out.println("Is big endian: " + isBigEndian);
       DataOutput pointStream = isBigEndian ? new DataOutputStream(
           pointBufferedStream) : new LittleEndianDataOutputStream(
           pointBufferedStream);
@@ -76,6 +76,26 @@ public class MatrixFileGenerator {
           pointStream.writeDouble(data[i * m + j]);
         }
       }
+    }
+  }
+
+  public static double[] readMatrixFile(String fileName, int rows, int cols, boolean isBigEndian) throws IOException {
+    Path pointsFile = Paths.get(fileName);
+    try (
+        BufferedInputStream pointBufferedStream = new BufferedInputStream(
+            Files.newInputStream(pointsFile, StandardOpenOption.READ)))
+    {
+      DataInput pointStream = isBigEndian ? new DataInputStream(
+          pointBufferedStream) : new LittleEndianDataInputStream(
+          pointBufferedStream);
+      double []data = new double[rows * cols];
+      int index = 0;
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+           data[index++] = pointStream.readDouble();
+        }
+      }
+      return data;
     }
   }
 }
