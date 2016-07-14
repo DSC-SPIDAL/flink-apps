@@ -82,13 +82,15 @@ public class KMeans {
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
                         int index = -1;
                         double x = 0, y = 0;
+                        int count = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Point> p = it.next();
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
+                            count++;
                         }
-                        collector.collect(new Tuple2(index, new Point(x, y)));
+                        collector.collect(new Tuple2(index, new Point(x / count, y / count)));
                     }
                 })
                         // count and sum point coordinates for each centroid
@@ -98,13 +100,15 @@ public class KMeans {
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
                         int index = -1;
                         double x = 0, y = 0;
+                        int count = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Point> p = it.next();
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
+                            count++;
                         }
-                        collector.collect(new Centroid(index, x, y));
+                        collector.collect(new Centroid(index, x / count, y / count));
                     }
                 });
 
