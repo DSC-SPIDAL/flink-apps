@@ -155,7 +155,7 @@ public class KMeans {
             // read points from CSV file
             points = env.readCsvFile(params.get("points"))
                     .fieldDelimiter(" ")
-                    .pojoType(Point.class, "x", "y");
+                    .pojoType(Point.class, "x", "y").setParallelism(100);
         } else {
             System.out.println("Executing K-Means example with default point data set.");
             System.out.println("Use --points to specify file input.");
