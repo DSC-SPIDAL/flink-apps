@@ -1,4 +1,4 @@
-package edu.iu.dsc.mm.flink;
+package edu.iu.dsc.flink.mm;
 
 
 import org.apache.flink.api.common.io.FileInputFormat;

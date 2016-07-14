@@ -1,4 +1,4 @@
-package edu.iu.dsc.mm.flink;
+package edu.iu.dsc.flink.mm;
 
 import com.google.common.base.Optional;
 import org.apache.commons.cli.*;
