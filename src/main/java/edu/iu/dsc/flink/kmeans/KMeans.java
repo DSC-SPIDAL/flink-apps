@@ -4,10 +4,7 @@ import java.util.Collection;
 import java.util.Iterator;
 
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
-import org.apache.flink.api.common.functions.GroupReduceFunction;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
-import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -79,7 +76,21 @@ public class KMeans {
 
         DataSet<Centroid> newCentroids = points
                 // compute closest centroid for each point
-                .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids")
+                .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+                    @Override
+                    public void combine(Iterable<Tuple2<Integer, Point>> iterable, Collector<Tuple2<Integer, Point>> collector) throws Exception {
+                        Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+                        int index = -1;
+                        double x = 0, y = 0;
+                        while (it.hasNext()) {
+                            Tuple2<Integer, Point> p = it.next();
+                            x += p.f1.x;
+                            y += p.f1.y;
+                            index = p.f0;
+                        }
+                        collector.collect(new Tuple2(index, new Point(x, y)));
+                    }
+                })
                         // count and sum point coordinates for each centroid
                 .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
                     @Override
