@@ -76,7 +76,7 @@ public class KMeans {
 
         DataSet<Centroid> newCentroids = points
                 // compute closest centroid for each point
-                .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+                .map(new SelectNearestCenter()).setParallelism(100).withBroadcastSet(loop, "centroids").groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
                     @Override
                     public void combine(Iterable<Tuple2<Integer, Point>> iterable, Collector<Tuple2<Integer, Point>> collector) throws Exception {
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
@@ -90,9 +90,9 @@ public class KMeans {
                             index = p.f0;
                             count++;
                         }
-                        collector.collect(new Tuple2(index, new Point(x / count, y / count)));
+                        collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
                     }
-                })
+                }).setParallelism(100)
                         // count and sum point coordinates for each centroid
                 .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
                     @Override
@@ -110,7 +110,7 @@ public class KMeans {
                         }
                         collector.collect(new Centroid(index, x / count, y / count));
                     }
-                });
+                }).setParallelism(10);
 
         // feed new centroids back into next iteration
         DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
