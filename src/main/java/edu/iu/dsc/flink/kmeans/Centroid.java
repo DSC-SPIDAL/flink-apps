@@ -1,16 +1,24 @@
 package edu.iu.dsc.flink.kmeans;
 
+import edu.iu.dsc.flink.kmeans.utils.Timing;
+
 /**
  * A simple two-dimensional centroid, basically a point with an ID.
  */
 public class Centroid extends Point {
-
     public int id;
+
+    public Timing timing;
 
     public Centroid() {}
 
     public Centroid(int id, double x, double y) {
         super(x,y);
+        this.id = id;
+    }
+
+    public Centroid(int id, double x, double y, int pid, long time) {
+        super(x, y, pid, time);
         this.id = id;
     }
 

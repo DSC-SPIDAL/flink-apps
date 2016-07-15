@@ -1,64 +1,21 @@
 package edu.iu.dsc.flink.kmeans;
 
+import edu.iu.dsc.flink.kmeans.utils.KMeansData;
+import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.functions.FunctionAnnotation;
+import org.apache.flink.api.java.operators.IterativeDataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.util.Collector;
+
 import java.util.Collection;
 import java.util.Iterator;
 
-import edu.iu.dsc.flink.kmeans.utils.KMeansData;
-import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.configuration.Configuration;
-import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.operators.IterativeDataSet;
-import org.apache.flink.util.Collector;
-
-/**
- * This example implements a basic K-Means clustering algorithm.
- *
- * <p>
- * K-Means is an iterative clustering algorithm and works as follows:<br>
- * K-Means is given a set of data points to be clustered and an initial set of <i>K</i> cluster centers.
- * In each iteration, the algorithm computes the distance of each data point to each cluster center.
- * Each point is assigned to the cluster center which is closest to it.
- * Subsequently, each cluster center is moved to the center (<i>mean</i>) of all points that have been assigned to it.
- * The moved cluster centers are fed into the next iteration.
- * The algorithm terminates after a fixed number of iterations (as in this implementation)
- * or if cluster centers do not (significantly) move in an iteration.<br>
- * This is the Wikipedia entry for the <a href="http://en.wikipedia.org/wiki/K-means_clustering">K-Means Clustering algorithm</a>.
- *
- * <p>
- * This implementation works on two-dimensional data points. <br>
- * It computes an assignment of data points to cluster centers, i.e.,
- * each data point is annotated with the id of the final cluster (center) it belongs to.
- *
- * <p>
- * Input files are plain text files and must be formatted as follows:
- * <ul>
- * <li>Data points are represented as two double values separated by a blank character.
- * Data points are separated by newline characters.<br>
- * For example <code>"1.2 2.3\n5.3 7.2\n"</code> gives two data points (x=1.2, y=2.3) and (x=5.3, y=7.2).
- * <li>Cluster centers are represented by an integer id and a point value.<br>
- * For example <code>"1 6.2 3.2\n2 2.9 5.7\n"</code> gives two centers (id=1, x=6.2, y=3.2) and (id=2, x=2.9, y=5.7).
- * </ul>
- *
- * <p>
- * Usage: <code>KMeans --points &lt;path&gt; --centroids &lt;path&gt; --output &lt;path&gt; --iterations &lt;n&gt;</code><br>
- * <p>
- * This example shows how to use:
- * <ul>
- * <li>Bulk iterations
- * <li>Broadcast variables in bulk iterations
- * <li>Custom Java objects (POJOs)
- * </ul>
- */
-@SuppressWarnings("serial")
-public class KMeans {
-
+public class KMeansTiming {
     public static void main(String[] args) throws Exception {
-
         // Checking input parameters
         final ParameterTool params = ParameterTool.fromArgs(args);
         int parallel = params.getInt("parallel", 1);
@@ -76,27 +33,41 @@ public class KMeans {
 
         DataSet<Centroid> newCentroids = points
                 // compute closest centroid for each point
-                .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").
-                        groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
-                    @Override
-                    public void combine(Iterable<Tuple2<Integer, Point>> iterable,
-                                        Collector<Tuple2<Integer, Point>> collector) throws Exception {
-                        Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
-                        int index = -1;
-                        double x = 0, y = 0;
-                        int count = 0;
-                        while (it.hasNext()) {
-                            Tuple2<Integer, Point> p = it.next();
-                            x += p.f1.x;
-                            y += p.f1.y;
-                            index = p.f0;
-                            count++;
-                        }
-                        collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
-                    }
-                })
+                .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").groupBy(0).combineGroup(
+                        new RichGroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+                            int pId;
+                            @Override
+                            public void open(Configuration parameters) throws Exception {
+                                super.open(parameters);
+                                pId = getRuntimeContext().getIndexOfThisSubtask();
+                            }
+
+                            @Override
+                            public void combine(Iterable<Tuple2<Integer, Point>> iterable,
+                                                Collector<Tuple2<Integer, Point>> collector) throws Exception {
+                                Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+                                int index = -1;
+                                double x = 0, y = 0;
+                                int count = 0;
+                                while (it.hasNext()) {
+                                    Tuple2<Integer, Point> p = it.next();
+                                    x += p.f1.x;
+                                    y += p.f1.y;
+                                    index = p.f0;
+                                    count++;
+                                }
+                                collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, pId, System.currentTimeMillis())));
+                            }
+                        })
                         // count and sum point coordinates for each centroid
-                .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
+                .groupBy(0).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
+                    int pId;
+                    @Override
+                    public void open(Configuration parameters) throws Exception {
+                        super.open(parameters);
+                        pId = getRuntimeContext().getIndexOfThisSubtask();
+                    }
+
                     @Override
                     public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                                        Collector<Centroid> collector) throws Exception {
@@ -109,9 +80,10 @@ public class KMeans {
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
+                            System.out.println("Reduction Time: " + (System.currentTimeMillis() - p.f1.time));
                             count++;
                         }
-                        collector.collect(new Centroid(index, x / count, y / count));
+                        collector.collect(new Centroid(index, x / count, y / count, pId, System.currentTimeMillis()));
                     }
                 });
 
@@ -176,7 +148,7 @@ public class KMeans {
     // *************************************************************************
 
     /** Determines the closest cluster center for a data point. */
-    @ForwardedFields("*->1")
+    @FunctionAnnotation.ForwardedFields("*->1")
     public static final class SelectNearestCenter extends RichMapFunction<Point, Tuple2<Integer, Point>> {
         private Collection<Centroid> centroids;
 
@@ -204,40 +176,8 @@ public class KMeans {
                 }
             }
 
-
-
             // emit a new record with the center id and the data point.
-            return new Tuple2<>(closestCentroidId, p);
-        }
-    }
-
-    /** Appends a count variable to the tuple. */
-    @ForwardedFields("f0;f1")
-    public static final class CountAppender implements MapFunction<Tuple2<Integer, Point>, Tuple3<Integer, Point, Long>> {
-
-        @Override
-        public Tuple3<Integer, Point, Long> map(Tuple2<Integer, Point> t) {
-            return new Tuple3<>(t.f0, t.f1, 1L);
-        }
-    }
-
-    /** Sums and counts point coordinates. */
-    @ForwardedFields("0")
-    public static final class CentroidAccumulator implements ReduceFunction<Tuple3<Integer, Point, Long>> {
-
-        @Override
-        public Tuple3<Integer, Point, Long> reduce(Tuple3<Integer, Point, Long> val1, Tuple3<Integer, Point, Long> val2) {
-            return new Tuple3<>(val1.f0, val1.f1.add(val2.f1), val1.f2 + val2.f2);
-        }
-    }
-
-    /** Computes new centroid from coordinate sum and count of points. */
-    @ForwardedFields("0->id")
-    public static final class CentroidAverager implements MapFunction<Tuple3<Integer, Point, Long>, Centroid> {
-
-        @Override
-        public Centroid map(Tuple3<Integer, Point, Long> value) {
-            return new Centroid(value.f0, value.f1.div(value.f2));
+            return new Tuple2<>(closestCentroidId, new Centroid(closestCentroidId, p));
         }
     }
 }

@@ -1,5 +1,7 @@
 package edu.iu.dsc.flink.kmeans;
 
+import edu.iu.dsc.flink.kmeans.utils.Timing;
+
 import java.io.Serializable;
 
 /**
@@ -10,6 +12,17 @@ public class Point implements Serializable {
     public double x, y;
 
     public Point() {}
+
+    public int pid;
+
+    public long time;
+
+    public Point(double x, double y, int id, long time) {
+        this.x = x;
+        this.y = y;
+        this.pid = id;
+        this.time = time;
+    }
 
     public Point(double x, double y) {
         this.x = x;
