@@ -8,6 +8,7 @@ import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.IterativeDataSet;
+import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
@@ -48,7 +49,6 @@ public class PerfTest {
               return new Tuple2<>(counter++ % reduction, p);
             }
           })
-          // count and sum point coordinates for each centroid
           .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Point>() {
             @Override
             public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
@@ -62,9 +62,6 @@ public class PerfTest {
       points = loop
           .map(new RichMapFunction<Point, Point>() {
                int reduction = 0;
-               /**
-                * Reads the centroid values from a broadcast variable into a collection.
-                */
                @Override
                public void open(Configuration parameters) throws Exception {
                  reduction = parameters.getInteger("reduction", 1);
@@ -72,7 +69,6 @@ public class PerfTest {
 
                @Override
                public Point map(Point p) throws Exception {
-                 // emit a new record with the center id and the data point.
                  return p;
                }
              }
@@ -82,15 +78,23 @@ public class PerfTest {
     // feed new centroids back into next iteration
     DataSet<Point> finalPoints = loop.closeWith(points);
 
+    DataSet<Tuple1<Point>> writePoints = finalPoints.map(new RichMapFunction<Point, Tuple1<Point>>() {
+
+      @Override
+      public Tuple1<Point> map(Point point) throws Exception {
+        return new Tuple1<Point>(point);
+      }
+    });
+
     // emit result
     if (params.has("output")) {
-      finalPoints.writeAsCsv(params.get("output"), "\n", " ");
+      writePoints.writeAsCsv(params.get("output"), "\n", " ");
 
       // since file sinks are lazy, we trigger the execution explicitly
       env.execute("KMeans Example");
     } else {
       System.out.println("Printing result to stdout. Use --output to specify output path.");
-      finalPoints.print();
+      writePoints.print();
     }
   }
 
