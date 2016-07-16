@@ -28,7 +28,6 @@ public class PerfTest {
 
     // set number of bulk iterations for KMeans algorithm
     IterativeDataSet<Point> loop = points.iterate(params.getInt("iterations", 10));
-    reduce = true;
     if (reduce) {
       points = loop
           .map(new RichMapFunction<Point, Tuple2<Integer, Point>>() {
