@@ -1,6 +1,7 @@
 package edu.iu.dsc.flink.perf;
 
 import edu.iu.dsc.flink.kmeans.Centroid;
+import edu.iu.dsc.flink.kmeans.KMeans;
 import edu.iu.dsc.flink.kmeans.Point;
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.*;
@@ -46,35 +47,8 @@ public class PerfTest {
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
-          .flatMap(new RichFlatMapFunction<Point, Tuple2<Integer, Point>>() {
-            private Collection<Centroid> centroids;
-
-            @Override
-            public void open(Configuration parameters) throws Exception {
-              this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
-            }
-
-            @Override
-            public void flatMap(Point p, Collector<Tuple2<Integer, Point>> collector) throws Exception {
-              double minDistance = Double.MAX_VALUE;
-              int closestCentroidId = -1;
-
-              // check all cluster centers
-              for (Centroid centroid : centroids) {
-                // compute distance
-                double distance = p.euclideanDistance(centroid);
-
-                // update nearest cluster if necessary
-                if (distance < minDistance) {
-                  minDistance = distance;
-                  closestCentroidId = centroid.id;
-                }
-              }
-              // emit a new record with the center id and the data point.
-              collector.collect(new Tuple2<>(closestCentroidId, p));
-            }
-          }).withBroadcastSet(loop, "centroids").
-              groupBy(0).combineGroup(new RichGroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+          .map(new KMeans.SelectNearestCenter()).withBroadcastSet(loop, "centroids").
+              groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
             @Override
             public void combine(Iterable<Tuple2<Integer, Point>> iterable,
                                 Collector<Tuple2<Integer, Point>> collector) throws Exception {
@@ -117,7 +91,7 @@ public class PerfTest {
 
       DataSet<Tuple2<Integer, Point>> clusteredPoints = points
           // assign points to final clusters
-          .map(new SelectNearestCenter()).withBroadcastSet(finalCentroids, "centroids");
+          .map(new KMeans.SelectNearestCenter()).withBroadcastSet(finalCentroids, "centroids");
 
       // emit result
       if (params.has("output")) {
@@ -155,12 +129,22 @@ public class PerfTest {
               Random random = new Random();
               for (int i = 0; i < count; i++) {
                 if (i % tasks == pid) {
+                  // System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, count, pid);
                   collector.collect(new Tuple2<>(i, new Point(random.nextDouble(), random.nextDouble())));
                 }
               }
             }
           }).withBroadcastSet(loop, "centroids").
               groupBy(0).combineGroup(new RichGroupCombineFunction<Tuple2<Integer, Point>, Centroid>() {
+
+            private int pid;
+            private int tasks;
+
+            @Override
+            public void open(Configuration parameters) throws Exception {
+              pid = getRuntimeContext().getIndexOfThisSubtask();
+              this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+            }
 
             @Override
             public void combine(Iterable<Tuple2<Integer, Point>> iterable,
@@ -176,6 +160,7 @@ public class PerfTest {
                 index = p.f0;
                 count++;
               }
+              // System.out.printf("Combine pid=%d task=%d\n", pid, tasks);
               collector.collect(new Centroid(index, x / count, y / count));
             }
           });
