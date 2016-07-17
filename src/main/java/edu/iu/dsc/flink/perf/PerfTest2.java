@@ -35,37 +35,38 @@
 //    // get input data:
 //    // read the points and centroids from the provided paths or fall back to default data
 //    DataSet<Point> points = getPointDataSet(params, env);
+//    DataSet<Centroid> centroids = getCentroidDataSet(params, env);
 //
 //    // set number of bulk iterations for KMeans algorithm
 //    if (reduce) {
 //      System.out.println("##################### Reduce #########################");
 //      // set number of bulk iterations for KMeans algorithm
-//      IterativeDataSet<Point> loop = points.iterate(params.getInt("iterations", 10));
+//      IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
 //
-//      DataSet<Point> newPoints = loop
+//      DataSet<Centroid> newPoints = loop
 //          // compute closest centroid for each point
-//          .map(new RichMapFunction<Point, Tuple2<Integer, Point>>() {
+//          .map(new RichMapFunction<Centroid, Tuple2<Integer, Centroid>>() {
 //            @Override
-//            public Tuple2<Integer, Point> map(Point point) throws Exception {
-//              return new Tuple2<Integer, Point>();
+//            public Tuple2<Integer, Centroid> map(Centroid point) throws Exception {
+//              return new Tuple2<Integer, Centroid>();
 //            }
 //          })
-//              .groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+//              .groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Centroid>, Tuple2<Integer, Centroid>>() {
 //            @Override
-//            public void combine(Iterable<Tuple2<Integer, Point>> iterable,
-//                                Collector<Tuple2<Integer, Point>> collector) throws Exception {
-//              Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+//            public void combine(Iterable<Tuple2<Integer, Centroid>> iterable,
+//                                Collector<Tuple2<Integer, Centroid>> collector) throws Exception {
+//              Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
 //              int index = -1;
 //              double x = 0, y = 0;
 //              int count = 0;
 //              while (it.hasNext()) {
-//                Tuple2<Integer, Point> p = it.next();
+//                Tuple2<Integer, Centroid> p = it.next();
 //                x += p.f1.x;
 //                y += p.f1.y;
 //                index = p.f0;
 //                count++;
 //              }
-//              collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
+//              collector.collect(new Tuple2<Integer, Centroid>(index, new Centroid(index, x / count, y / count)));
 //            }
 //          })
 //          // count and sum point coordinates for each centroid
@@ -224,36 +225,5 @@
 //      points = KMeansData.getDefaultPointDataSet(env, params.getInt("pcount", 1000));
 //    }
 //    return points;
-//  }
-//
-//  @FunctionAnnotation.ForwardedFields("*->1")
-//  public static final class SelectNearestCenter extends RichMapFunction<Point, Tuple2<Integer, Point>> {
-//    private Collection<Centroid> centroids;
-//    /** Reads the centroid values from a broadcast variable into a collection. */
-//    @Override
-//    public void open(Configuration parameters) throws Exception {
-//      this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
-//    }
-//
-//    @Override
-//    public Tuple2<Integer, Point> map(Point p) throws Exception {
-//
-//      double minDistance = Double.MAX_VALUE;
-//      int closestCentroidId = -1;
-//
-//      // check all cluster centers
-//      for (Centroid centroid : centroids) {
-//        // compute distance
-//        double distance = p.euclideanDistance(centroid);
-//
-//        // update nearest cluster if necessary
-//        if (distance < minDistance) {
-//          minDistance = distance;
-//          closestCentroidId = centroid.id;
-//        }
-//      }
-//      // emit a new record with the center id and the data point.
-//      return new Tuple2<>(closestCentroidId, p);
-//    }
 //  }
 //}

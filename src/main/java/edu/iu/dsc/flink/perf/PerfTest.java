@@ -31,6 +31,7 @@ public class PerfTest {
       File f = new File(params.get("output"));
       f.delete();
     }
+    env.getConfig().disableObjectReuse();
     // get input data:
     // read the points and centroids from the provided paths or fall back to default data
     DataSet<Point> points = getPointDataSet(params, env);
@@ -44,23 +45,41 @@ public class PerfTest {
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
-          .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").
-              groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+          .map(new RichMapFunction<Point, Tuple2<Integer, Point>>() {
+            private Collection<Centroid> centroids;
+            private int centroidSize;
+            private int pid;
+            private int tasks;
+            int firstCentroid = -1;
+            int lastCentroid = -1;
+            int points = 0;
+
             @Override
-            public void combine(Iterable<Tuple2<Integer, Point>> iterable,
-                                Collector<Tuple2<Integer, Point>> collector) throws Exception {
-              Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
-              int index = -1;
-              double x = 0, y = 0;
-              int count = 0;
-              while (it.hasNext()) {
-                Tuple2<Integer, Point> p = it.next();
-                x += p.f1.x;
-                y += p.f1.y;
-                index = p.f0;
-                count++;
+            public void open(Configuration parameters) throws Exception {
+              this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
+              this.centroidSize = centroids.size();
+              pid = getRuntimeContext().getIndexOfThisSubtask();
+              this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+
+              int centroidsPerTask = centroidSize / tasks;
+              firstCentroid = pid * centroidsPerTask;
+              lastCentroid = firstCentroid + centroidsPerTask;
+              if (pid == tasks - 1) {
+                lastCentroid = centroidSize;
               }
-              collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
+              points = firstCentroid;
+              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks + " first: " + firstCentroid + " last: " + lastCentroid);
+            }
+
+            @Override
+            public Tuple2<Integer, Point> map(Point point) throws Exception {
+              Random random = new Random();
+              int p = points;
+              points++;
+              if (points == lastCentroid) {
+                points = firstCentroid;
+              }
+              return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
             }
           }).withBroadcastSet(loop, "centroids").
               groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
@@ -121,7 +140,7 @@ public class PerfTest {
     } else {
       System.out.println("##################### Not Reduce #########################");
       // set number of bulk iterations for KMeans algorithm
-      IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
+      IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 25));
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
