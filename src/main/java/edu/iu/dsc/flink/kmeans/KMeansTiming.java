@@ -82,7 +82,7 @@ public class KMeansTiming {
                             index = p.f0;
                             count++;
                         }
-                        collector.collect(new Centroid(index, x / count, y / count, pId, System.currentTimeMillis()));
+                        collector.collect(new Centroid(index, x / count, y / count));
                     }
                 });
 
