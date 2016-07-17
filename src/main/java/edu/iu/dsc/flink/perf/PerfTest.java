@@ -82,7 +82,7 @@ public class PerfTest {
               }
               return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
             }
-          }).withBroadcastSet(loop, "centroids").setParallelism(parallel).
+          }).setParallelism(parallel).withBroadcastSet(loop, "centroids").setParallelism(parallel).
               groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
             @Override
             public void combine(Iterable<Tuple2<Integer, Point>> iterable,
