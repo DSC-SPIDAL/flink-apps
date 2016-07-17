@@ -44,7 +44,43 @@ public class PerfTest {
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
-          .map(new KMeans.SelectNearestCenter()).withBroadcastSet(loop, "centroids").
+          .map(new RichMapFunction<Point, Tuple2<Integer, Point>>() {
+            private Collection<Centroid> centroids;
+            private int centroidSize;
+            private int pid;
+            private int tasks;
+            int firstCentroid = -1;
+            int lastCentroid = -1;
+            int points = 0;
+
+            @Override
+            public void open(Configuration parameters) throws Exception {
+              this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
+              this.centroidSize = centroids.size();
+              pid = getRuntimeContext().getIndexOfThisSubtask();
+              this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+
+              int centroidsPerTask = centroidSize / tasks;
+              firstCentroid = pid * centroidsPerTask;
+              lastCentroid = firstCentroid + centroidsPerTask;
+              if (pid == tasks - 1) {
+                lastCentroid = centroidSize;
+              }
+              points = firstCentroid;
+              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks + " first: " + firstCentroid + " last: " + lastCentroid);
+            }
+
+            @Override
+            public Tuple2<Integer, Point> map(Point point) throws Exception {
+              Random random = new Random();
+              int p = points;
+              points++;
+              if (points == lastCentroid) {
+                points = firstCentroid;
+              }
+              return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
+            }
+          }).withBroadcastSet(loop, "centroids").
               groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
             @Override
             public void combine(Iterable<Tuple2<Integer, Point>> iterable,
@@ -107,7 +143,7 @@ public class PerfTest {
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
-          .flatMap(new RichFlatMapFunction<Point, Tuple2<Integer, Point>>() {
+          .map(new RichMapFunction<Point, Tuple2<Integer, Point>>() {
             private Collection<Centroid> centroids;
             private int centroidSize;
             private int pid;
@@ -134,13 +170,14 @@ public class PerfTest {
             }
 
             @Override
-            public void flatMap(Point point, Collector<Tuple2<Integer, Point>> collector) throws Exception {
+            public Tuple2<Integer, Point> map(Point point) throws Exception {
               Random random = new Random();
-              collector.collect(new Tuple2<>(points, new Point(random.nextDouble(), random.nextDouble())));
+              int p = points;
               points++;
               if (points == lastCentroid) {
                 points = firstCentroid;
               }
+              return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
             }
           }).withBroadcastSet(loop, "centroids").
               groupBy(0).combineGroup(new RichGroupCombineFunction<Tuple2<Integer, Point>, Centroid>() {
@@ -166,7 +203,7 @@ public class PerfTest {
                 x += p.f1.x;
                 y += p.f1.y;
                 index = p.f0;
-                count++;
+                count += 2;
               }
               // System.out.printf("Combine pid=%d task=%d\n", pid, tasks);
               collector.collect(new Centroid(index, x / count, y / count));
