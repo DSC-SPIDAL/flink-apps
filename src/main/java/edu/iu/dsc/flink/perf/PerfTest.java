@@ -119,6 +119,7 @@ public class PerfTest {
               this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
               this.centroidSize = centroids.size();
               pid = getRuntimeContext().getIndexOfThisSubtask();
+              System.out.println(getRuntimeContext().getTaskNameWithSubtasks());
               this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
               System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize);
             }
