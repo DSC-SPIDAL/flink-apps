@@ -56,7 +56,7 @@ public class KMeansTiming {
                                     index = p.f0;
                                     count++;
                                 }
-                                collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, pId, System.currentTimeMillis())));
+                                collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
                             }
                         })
                         // count and sum point coordinates for each centroid
@@ -80,7 +80,6 @@ public class KMeansTiming {
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
-                            System.out.println("Reduction Time: " + (System.currentTimeMillis() - p.f1.time));
                             count++;
                         }
                         collector.collect(new Centroid(index, x / count, y / count, pId, System.currentTimeMillis()));
