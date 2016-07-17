@@ -120,6 +120,7 @@ public class PerfTest {
               this.centroidSize = centroids.size();
               pid = getRuntimeContext().getIndexOfThisSubtask();
               this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize);
             }
 
             @Override
@@ -128,7 +129,7 @@ public class PerfTest {
               int i =  previousCentroid == centroidSize - 1 ? 0 : previousCentroid + 1;
               while (true) {
                 if (i % tasks == pid) {
-                    //System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, centroidSize, pid);
+                    // System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, centroidSize, pid);
                     previousCentroid = i;
                     collector.collect(new Tuple2<>(i, new Point(random.nextDouble(), random.nextDouble())));
                     break;
