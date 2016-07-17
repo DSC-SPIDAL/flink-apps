@@ -5,13 +5,10 @@ import edu.iu.dsc.flink.kmeans.KMeans;
 import edu.iu.dsc.flink.kmeans.Point;
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.common.typeinfo.IntegerTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.functions.FunctionAnnotation;
 import org.apache.flink.api.java.operators.IterativeDataSet;
-import org.apache.flink.api.java.sampling.RandomSampler;
-import org.apache.flink.api.java.tuple.Tuple1;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
@@ -112,14 +109,15 @@ public class PerfTest {
           // compute closest centroid for each point
           .flatMap(new RichFlatMapFunction<Point, Tuple2<Integer, Point>>() {
             private Collection<Centroid> centroids;
-            private int count;
+            private int centroidSize;
             private int pid;
             private int tasks;
+            int previousCentroid = -1;
 
             @Override
             public void open(Configuration parameters) throws Exception {
               this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
-              this.count = centroids.size();
+              this.centroidSize = centroids.size();
               pid = getRuntimeContext().getIndexOfThisSubtask();
               this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
             }
@@ -127,11 +125,15 @@ public class PerfTest {
             @Override
             public void flatMap(Point point, Collector<Tuple2<Integer, Point>> collector) throws Exception {
               Random random = new Random();
-              for (int i = 0; i < count; i++) {
+              int i =  previousCentroid == centroidSize - 1 ? 0 : previousCentroid + 1;
+              while (true) {
                 if (i % tasks == pid) {
-                  // System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, count, pid);
-                  collector.collect(new Tuple2<>(i, new Point(random.nextDouble(), random.nextDouble())));
+                    System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, centroidSize, pid);
+                    previousCentroid = i;
+                    collector.collect(new Tuple2<>(i, new Point(random.nextDouble(), random.nextDouble())));
+                    break;
                 }
+                i = i + 1 == centroidSize ? 0 : i + 1;
               }
             }
           }).withBroadcastSet(loop, "centroids").
@@ -212,7 +214,7 @@ public class PerfTest {
     } else {
       System.out.println("Executing K-Means example with default point data set.");
       System.out.println("Use --points to specify file input.");
-      points = KMeansData.getDefaultPointDataSet(env);
+      points = KMeansData.getDefaultPointDataSet(env, params.getInt("pcount", 1000));
     }
     return points;
   }

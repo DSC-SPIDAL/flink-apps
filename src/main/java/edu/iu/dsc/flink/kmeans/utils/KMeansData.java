@@ -96,4 +96,13 @@ public class KMeansData {
         return env.fromCollection(pointList);
     }
 
+    public static DataSet<Point> getDefaultPointDataSet(ExecutionEnvironment env, int size) {
+        List<Point> pointList = new LinkedList<Point>();
+        Random random = new Random();
+        for (int i = 0; i < size; i++) {
+            pointList.add(new Point(random.nextDouble(), random.nextDouble()));
+        }
+        return env.fromCollection(pointList);
+    }
+
 }
