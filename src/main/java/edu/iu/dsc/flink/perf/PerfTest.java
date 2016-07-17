@@ -24,6 +24,7 @@ public class PerfTest {
     // Checking input parameters
     final ParameterTool params = ParameterTool.fromArgs(args);
     boolean reduce = params.getBoolean("reduce", true);
+    int parallel = params.getInt("parallel", 1);
     // set up execution environment
     ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
     env.getConfig().setGlobalJobParameters(params); // make parameters available in the web interface
@@ -68,7 +69,7 @@ public class PerfTest {
                 lastCentroid = centroidSize;
               }
               points = firstCentroid;
-              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks + " first: " + firstCentroid + " last: " + lastCentroid);
+              System.out.println("%%%%%%%%%%%%%%%%%%%% Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks + " first: " + firstCentroid + " last: " + lastCentroid);
             }
 
             @Override
@@ -81,7 +82,7 @@ public class PerfTest {
               }
               return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
             }
-          }).withBroadcastSet(loop, "centroids").
+          }).withBroadcastSet(loop, "centroids").setParallelism(parallel).
               groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
             @Override
             public void combine(Iterable<Tuple2<Integer, Point>> iterable,
@@ -99,7 +100,7 @@ public class PerfTest {
               }
               collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
             }
-          })
+          }).setParallelism(parallel)
           // count and sum point coordinates for each centroid
           .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
             @Override
@@ -118,7 +119,7 @@ public class PerfTest {
               }
               collector.collect(new Centroid(index, x / count, y / count));
             }
-          });
+          }).setParallelism(parallel);
 
       // feed new centroids back into next iteration
       DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
@@ -180,7 +181,7 @@ public class PerfTest {
               }
               return new Tuple2<>(p, new Point(random.nextDouble(), random.nextDouble()));
             }
-          }).withBroadcastSet(loop, "centroids").
+          }).withBroadcastSet(loop, "centroids").setParallelism(parallel).
               groupBy(0).combineGroup(new RichGroupCombineFunction<Tuple2<Integer, Point>, Centroid>() {
 
             private int pid;
@@ -209,7 +210,7 @@ public class PerfTest {
               // System.out.printf("Combine pid=%d task=%d\n", pid, tasks);
               collector.collect(new Centroid(index, x / count, y / count));
             }
-          });
+          }).setParallelism(parallel);
       // feed new centroids back into next iteration
       DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
 
