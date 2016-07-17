@@ -244,7 +244,7 @@ public class PerfTest {
     } else {
       System.out.println("Executing K-Means example with default centroid data set.");
       System.out.println("Use --centroids to specify file input.");
-      centroids = KMeansData.getDefaultCentroidDataSet(env, params.getInt("ccount", 100));
+      centroids = KMeansData.getDefaultCentroidDataSet(env, params.getInt("ccount", 100), params.getInt("parallel", 1));
     }
     return centroids;
   }
@@ -259,7 +259,7 @@ public class PerfTest {
     } else {
       System.out.println("Executing K-Means example with default point data set.");
       System.out.println("Use --points to specify file input.");
-      points = KMeansData.getDefaultPointDataSet(env, params.getInt("pcount", 1000));
+      points = KMeansData.getDefaultPointDataSet(env, params.getInt("pcount", 1000), params.getInt("parallel", 1));
     }
     return points;
   }

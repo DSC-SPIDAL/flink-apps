@@ -77,7 +77,7 @@ public class KMeansData {
         return env.fromCollection(centroidList);
     }
 
-    public static DataSet<Centroid> getDefaultCentroidDataSet(ExecutionEnvironment env, int size) {
+    public static DataSet<Centroid> getDefaultCentroidDataSet(ExecutionEnvironment env, int size, int parallel) {
         System.out.println("***************************** Centroid dataset with size: " + size);
         LinkedList<Centroid> centroidList = new LinkedList<Centroid>();
         Random random = new Random();
@@ -85,7 +85,7 @@ public class KMeansData {
             centroidList.add(
                 new Centroid(i, random.nextDouble(), random.nextDouble()));
         }
-        return env.fromCollection(centroidList);
+        return env.fromCollection(centroidList).setParallelism(parallel);
     }
 
     public static DataSet<Point> getDefaultPointDataSet(ExecutionEnvironment env) {
@@ -96,13 +96,13 @@ public class KMeansData {
         return env.fromCollection(pointList);
     }
 
-    public static DataSet<Point> getDefaultPointDataSet(ExecutionEnvironment env, int size) {
+    public static DataSet<Point> getDefaultPointDataSet(ExecutionEnvironment env, int size, int parallel) {
         List<Point> pointList = new LinkedList<Point>();
         Random random = new Random();
         for (int i = 0; i < size; i++) {
             pointList.add(new Point(random.nextDouble(), random.nextDouble()));
         }
-        return env.fromCollection(pointList);
+        return env.fromCollection(pointList).setParallelism(parallel);
     }
 
 }
