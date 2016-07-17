@@ -4,9 +4,11 @@ import edu.iu.dsc.flink.kmeans.Centroid;
 import edu.iu.dsc.flink.kmeans.Point;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.sampling.RandomSampler;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Provides the default data sets used for the K-Means example program.
@@ -71,6 +73,16 @@ public class KMeansData {
         for (Object[] centroid : CENTROIDS) {
             centroidList.add(
                     new Centroid((Integer) centroid[0], (Double) centroid[1], (Double) centroid[2]));
+        }
+        return env.fromCollection(centroidList);
+    }
+
+    public static DataSet<Centroid> getDefaultCentroidDataSet(ExecutionEnvironment env, int size) {
+        LinkedList<Centroid> centroidList = new LinkedList<Centroid>();
+        Random random = new Random();
+        for (int i = 0; i < size; i++) {
+            centroidList.add(
+                new Centroid(i, random.nextDouble(), random.nextDouble()));
         }
         return env.fromCollection(centroidList);
     }
