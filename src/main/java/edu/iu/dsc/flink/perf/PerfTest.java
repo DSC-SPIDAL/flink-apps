@@ -42,7 +42,7 @@ public class PerfTest {
     if (reduce) {
       System.out.println("##################### Reduce #########################");
       // set number of bulk iterations for KMeans algorithm
-      IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
+      IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10)).setParallelism(parallel);
 
       DataSet<Centroid> newCentroids = points
           // compute closest centroid for each point
