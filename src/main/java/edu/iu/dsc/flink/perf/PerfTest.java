@@ -40,6 +40,7 @@ public class PerfTest {
 
     // set number of bulk iterations for KMeans algorithm
     if (reduce) {
+      System.out.println("##################### Reduce #########################");
       // set number of bulk iterations for KMeans algorithm
       IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
 
@@ -129,6 +130,7 @@ public class PerfTest {
         clusteredPoints.print();
       }
     } else {
+      System.out.println("##################### Not Reduce #########################");
       // set number of bulk iterations for KMeans algorithm
       IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
 
