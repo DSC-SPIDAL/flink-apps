@@ -119,7 +119,7 @@ public class PerfTest {
               }
               collector.collect(new Centroid(index, x / count, y / count));
             }
-          }).setParallelism(parallel);
+          });
 
       // feed new centroids back into next iteration
       DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
