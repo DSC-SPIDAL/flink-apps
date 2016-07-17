@@ -78,6 +78,7 @@ public class KMeansData {
     }
 
     public static DataSet<Centroid> getDefaultCentroidDataSet(ExecutionEnvironment env, int size) {
+        System.out.println("***************************** Centroid dataset with size: " + size);
         LinkedList<Centroid> centroidList = new LinkedList<Centroid>();
         Random random = new Random();
         for (int i = 0; i < size; i++) {
