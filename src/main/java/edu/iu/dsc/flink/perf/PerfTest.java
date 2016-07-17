@@ -112,7 +112,9 @@ public class PerfTest {
             private int centroidSize;
             private int pid;
             private int tasks;
-            int previousCentroid = -1;
+            int firstCentroid = -1;
+            int lastCentroid = -1;
+            int points = 0;
 
             @Override
             public void open(Configuration parameters) throws Exception {
@@ -120,21 +122,24 @@ public class PerfTest {
               this.centroidSize = centroids.size();
               pid = getRuntimeContext().getIndexOfThisSubtask();
               this.tasks = getRuntimeContext().getNumberOfParallelSubtasks();
-              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks);
+
+              int centroidsPerTask = centroidSize / tasks;
+              firstCentroid = pid * centroidsPerTask;
+              lastCentroid = firstCentroid + centroidsPerTask;
+              if (pid == tasks - 1) {
+                lastCentroid = centroidSize;
+              }
+              points = firstCentroid;
+              System.out.println("%%%%%%%%%%%%%%%%%%%%   Centroid size: " + centroidSize + " PID: " + pid + " parallel: " + tasks + " first: " + firstCentroid + " last: " + lastCentroid);
             }
 
             @Override
             public void flatMap(Point point, Collector<Tuple2<Integer, Point>> collector) throws Exception {
               Random random = new Random();
-              int i =  previousCentroid == centroidSize - 1 ? 0 : previousCentroid + 1;
-              while (true) {
-                if (i % tasks == pid) {
-                    // System.out.format("Emit i=%d tasks=%d count=%d pid=%d\n", i, tasks, centroidSize, pid);
-                    previousCentroid = i;
-                    collector.collect(new Tuple2<>(i, new Point(random.nextDouble(), random.nextDouble())));
-                    break;
-                }
-                i = i + 1 == centroidSize ? 0 : i + 1;
+              collector.collect(new Tuple2<>(points, new Point(random.nextDouble(), random.nextDouble())));
+              points++;
+              if (points == lastCentroid) {
+                points = firstCentroid;
               }
             }
           }).withBroadcastSet(loop, "centroids").
