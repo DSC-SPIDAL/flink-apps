@@ -5,14 +5,11 @@ import edu.iu.dsc.flink.kmeans.KMeans;
 import edu.iu.dsc.flink.kmeans.Point;
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.*;
-import org.apache.flink.api.common.typeinfo.IntegerTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.apache.flink.api.java.functions.FunctionAnnotation;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
 
 import java.io.File;
@@ -120,13 +117,13 @@ public class PerfTest2 {
                 counts.remove(p.f0);
                 counts.put(p.f0, count);
               }
-              System.out.println("Emitting: " + centroidMap.keySet().size());
+              // System.out.println("Emitting: " + centroidMap.keySet().size());
               for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                 int c = counts.get(ce.getKey());
                 collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
               }
             }
-          }).setParallelism(parallel);
+          });
 
       // feed new centroids back into next iteration
       DataSet<Centroid> finalCentroids = loop.closeWith(newPoints);
