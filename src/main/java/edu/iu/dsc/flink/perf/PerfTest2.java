@@ -51,7 +51,7 @@ public class PerfTest2 {
               return new Tuple2<Integer, Centroid>(point.id, point);
             }
           }).setParallelism(parallel)
-            .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Centroid>, Tuple2<Integer, Centroid>>()  {
+            .reduceGroup(new GroupReduceFunction<Tuple2<Integer, Centroid>, Tuple2<Integer, Centroid>>()  {
             @Override
             public void reduce(Iterable<Tuple2<Integer, Centroid>> iterable, Collector<Tuple2<Integer, Centroid>> collector) throws Exception {
               Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
