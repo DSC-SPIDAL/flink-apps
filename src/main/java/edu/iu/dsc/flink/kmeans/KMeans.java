@@ -131,8 +131,10 @@ public class KMeans {
                             counts.remove(p.f0);
                             counts.put(p.f0, count);
                         }
-
-                        collector.collect(new Centroid(index, x / count, y / count));
+                        for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+                            int c = counts.get(ce.getKey());
+                            collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
+                        }
                     }
                 });
 
