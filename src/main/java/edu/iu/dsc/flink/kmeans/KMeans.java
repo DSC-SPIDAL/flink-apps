@@ -207,6 +207,7 @@ public class KMeans {
         @Override
         public void open(Configuration parameters) throws Exception {
             this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
+            System.out.println("No of centroids: " + centroids.size());
         }
 
         @Override
