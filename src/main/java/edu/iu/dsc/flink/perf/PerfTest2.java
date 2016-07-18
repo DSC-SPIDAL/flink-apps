@@ -84,6 +84,7 @@ public class PerfTest2 {
                 counts.remove(p.f0);
                 counts.put(p.f0, count);
               }
+              System.out.println("Emitting: " + centroidMap.keySet().size());
               for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                 int c = counts.get(ce.getKey());
                 collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
