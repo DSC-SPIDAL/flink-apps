@@ -16,9 +16,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Random;
+import java.util.*;
 
 public class PerfTest2 {
   public static void main(String[] args) throws Exception {
@@ -60,16 +58,36 @@ public class PerfTest2 {
             @Override
             public void reduce(Iterable<Tuple2<Integer, Centroid>> iterable, Collector<Centroid> collector) throws Exception {
               Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
-              Centroid c = new Centroid();
+              Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+              Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
+              int index = -1;
               double x = 0, y = 0;
-              int id = 0;
+              int count = 0;
               while (it.hasNext()) {
-                Tuple2<Integer, Centroid> i = it.next();
-                x += i.f1.x;
-                y += i.f1.y;
-                id = i.f0;
+                Tuple2<Integer, Centroid> p = it.next();
+                x += p.f1.x;
+                y += p.f1.y;
+                index = p.f0;
+                Centroid centroid;
+                if (centroidMap.containsKey(p.f0)) {
+                  centroid = centroidMap.get(p.f0);
+                  centroidMap.get(p.f0);
+                  count = counts.get(p.f0);
+                } else {
+                  centroid = new Centroid(index, 0, 0);
+                  centroidMap.put(p.f0, centroid);
+                  count = 0;
+                }
+                count++;
+                centroid.x += p.f1.x;
+                centroid.y += p.f1.y;
+                counts.remove(p.f0);
+                counts.put(p.f0, count);
               }
-              collector.collect(new Centroid(id, x, y));
+              for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+                int c = counts.get(ce.getKey());
+                collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
+              }
             }
           }).setParallelism(parallel);
 
