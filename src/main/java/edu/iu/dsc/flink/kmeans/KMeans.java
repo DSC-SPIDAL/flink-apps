@@ -1,10 +1,14 @@
 package edu.iu.dsc.flink.kmeans;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.common.functions.*;
+import org.apache.flink.api.common.typeinfo.IntegerTypeInfo;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -95,11 +99,13 @@ public class KMeans {
                         collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
                     }
                 })
-                        // count and sum point coordinates for each centroid
-                .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
+                 // count and sum point coordinates for each centroid
+                .reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
                     @Override
                     public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                                        Collector<Centroid> collector) throws Exception {
+                        Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+                        Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
                         int index = -1;
                         double x = 0, y = 0;
@@ -109,8 +115,23 @@ public class KMeans {
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
+                            Centroid centroid;
+                            if (centroidMap.containsKey(p.f0)) {
+                                centroid = centroidMap.get(p.f0);
+                                centroidMap.get(p.f0);
+                                count = counts.get(p.f0);
+                            } else {
+                                centroid = new Centroid(index, 0, 0);
+                                centroidMap.put(p.f0, centroid);
+                                count = 0;
+                            }
                             count++;
+                            centroid.x += p.f1.x;
+                            centroid.y += p.f1.y;
+                            counts.remove(p.f0);
+                            counts.put(p.f0, count);
                         }
+
                         collector.collect(new Centroid(index, x / count, y / count));
                     }
                 });
