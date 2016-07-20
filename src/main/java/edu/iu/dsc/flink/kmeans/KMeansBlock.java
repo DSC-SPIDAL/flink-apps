@@ -52,7 +52,7 @@ public class KMeansBlock {
               time = p.f1.time;
               count++;
             }
-            collector.collect(new Tuple2<Integer, Point>(index, new Point(x, y, time)));
+            collector.collect(new Tuple2<Integer, Point>(index, new Point(x/count, y/count, time)));
           }
         })
         // count and sum point coordinates for each centroid
@@ -93,7 +93,7 @@ public class KMeansBlock {
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
               long t = time;
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x, ce.getValue().y, t));
+              collector.collect(new Centroid(ce.getKey(), ce.getValue().x/c, ce.getValue().y/c, t));
             }
           }
         });
@@ -206,7 +206,7 @@ public class KMeansBlock {
         int c = counts.get(ce.getKey());
         long currentTime = currentTimes.get(ce.getKey());
         long accuTime = System.nanoTime() - time + currentTime;
-        collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, accuTime)));
+        collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x, ce.getValue().y, accuTime)));
       }
     }
   }
