@@ -89,14 +89,16 @@ public class KMeans {
                         int index = -1;
                         double x = 0, y = 0;
                         int count = 0;
+                        long time = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Point> p = it.next();
                             x += p.f1.x;
                             y += p.f1.y;
                             index = p.f0;
                             count++;
+                            time = p.f1.time;
                         }
-                        collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
+                        collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, time)));
                     }
                 })
                  // count and sum point coordinates for each centroid
@@ -110,6 +112,7 @@ public class KMeans {
                         int index = -1;
                         double x = 0, y = 0;
                         int count = 0;
+                        long time = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Point> p = it.next();
                             x += p.f1.x;
@@ -130,10 +133,11 @@ public class KMeans {
                             centroid.y += p.f1.y;
                             counts.remove(p.f0);
                             counts.put(p.f0, count);
+                            time = p.f1.time;
                         }
                         for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                             int c = counts.get(ce.getKey());
-                            collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
+                            collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time));
                         }
                     }
                 });
@@ -212,7 +216,7 @@ public class KMeans {
 
         @Override
         public Tuple2<Integer, Point> map(Point p) throws Exception {
-
+            long time = System.nanoTime();
             double minDistance = Double.MAX_VALUE;
             int closestCentroidId = -1;
 
@@ -227,41 +231,10 @@ public class KMeans {
                     closestCentroidId = centroid.id;
                 }
             }
-
-
-
+            long computeTIme = System.nanoTime() - time;
+            p.time += computeTIme;
             // emit a new record with the center id and the data point.
             return new Tuple2<>(closestCentroidId, p);
-        }
-    }
-
-    /** Appends a count variable to the tuple. */
-    @ForwardedFields("f0;f1")
-    public static final class CountAppender implements MapFunction<Tuple2<Integer, Point>, Tuple3<Integer, Point, Long>> {
-
-        @Override
-        public Tuple3<Integer, Point, Long> map(Tuple2<Integer, Point> t) {
-            return new Tuple3<>(t.f0, t.f1, 1L);
-        }
-    }
-
-    /** Sums and counts point coordinates. */
-    @ForwardedFields("0")
-    public static final class CentroidAccumulator implements ReduceFunction<Tuple3<Integer, Point, Long>> {
-
-        @Override
-        public Tuple3<Integer, Point, Long> reduce(Tuple3<Integer, Point, Long> val1, Tuple3<Integer, Point, Long> val2) {
-            return new Tuple3<>(val1.f0, val1.f1.add(val2.f1), val1.f2 + val2.f2);
-        }
-    }
-
-    /** Computes new centroid from coordinate sum and count of points. */
-    @ForwardedFields("0->id")
-    public static final class CentroidAverager implements MapFunction<Tuple3<Integer, Point, Long>, Centroid> {
-
-        @Override
-        public Centroid map(Tuple3<Integer, Point, Long> value) {
-            return new Centroid(value.f0, value.f1.div(value.f2));
         }
     }
 }
