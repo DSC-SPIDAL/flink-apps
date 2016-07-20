@@ -218,7 +218,7 @@ public class KMeans {
             long time = System.nanoTime();
             double minDistance = Double.MAX_VALUE;
             int closestCentroidId = -1;
-
+            long centroidTime = 0;
             // check all cluster centers
             for (Centroid centroid : centroids) {
                 // compute distance
@@ -228,10 +228,11 @@ public class KMeans {
                 if (distance < minDistance) {
                     minDistance = distance;
                     closestCentroidId = centroid.id;
+                    centroidTime = centroid.time;
                 }
             }
             long computeTIme = System.nanoTime() - time;
-            p.time += computeTIme;
+            p.time = computeTIme + centroidTime;
             // emit a new record with the center id and the data point.
             return new Tuple2<>(closestCentroidId, p);
         }
