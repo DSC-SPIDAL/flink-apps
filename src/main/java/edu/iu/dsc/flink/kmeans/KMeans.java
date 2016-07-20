@@ -86,6 +86,7 @@ public class KMeans {
                     public void combine(Iterable<Tuple2<Integer, Point>> iterable,
                                         Collector<Tuple2<Integer, Point>> collector) throws Exception {
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+                        long startTime = System.nanoTime();
                         int index = -1;
                         double x = 0, y = 0;
                         int count = 0;
@@ -98,6 +99,8 @@ public class KMeans {
                             count++;
                             time = p.f1.time;
                         }
+                        long endTime = System.nanoTime();
+                        time += endTime - startTime;
                         collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, time)));
                     }
                 })
@@ -106,6 +109,7 @@ public class KMeans {
                     @Override
                     public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                                        Collector<Centroid> collector) throws Exception {
+                        long startTime = System.nanoTime();
                         Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
                         Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
@@ -135,6 +139,8 @@ public class KMeans {
                             counts.put(p.f0, count);
                             time = p.f1.time;
                         }
+                        long endTime = System.nanoTime();
+                        time += endTime - startTime;
                         for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                             int c = counts.get(ce.getKey());
                             collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time));
