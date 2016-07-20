@@ -46,6 +46,6 @@ public class Point implements Serializable {
 
     @Override
     public String toString() {
-        return x + " " + y + " " + (time / 1000000);
+        return x + " " + y + " " + (((double)time) / 1000000);
     }
 }

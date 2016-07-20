@@ -203,7 +203,6 @@ public class KMeans {
     // *************************************************************************
 
     /** Determines the closest cluster center for a data point. */
-    @ForwardedFields("*->1")
     public static final class SelectNearestCenter extends RichMapFunction<Point, Tuple2<Integer, Point>> {
         private Collection<Centroid> centroids;
 
