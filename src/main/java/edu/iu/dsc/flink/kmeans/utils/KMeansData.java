@@ -2,10 +2,12 @@ package edu.iu.dsc.flink.kmeans.utils;
 
 import edu.iu.dsc.flink.kmeans.Centroid;
 import edu.iu.dsc.flink.kmeans.Point;
+import edu.iu.dsc.flink.kmeans.PointBlock;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.sampling.RandomSampler;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -94,6 +96,16 @@ public class KMeansData {
             pointList.add(new Point((Double) point[0], (Double) point[1]));
         }
         return env.fromCollection(pointList);
+    }
+
+    public static DataSet<PointBlock> getDefaultPointBlockDataSet(ExecutionEnvironment env) {
+        List<Point> pointList = new LinkedList<Point>();
+        for (Object[] point : POINTS) {
+            pointList.add(new Point((Double) point[0], (Double) point[1]));
+        }
+        PointBlock block = new PointBlock();
+        block.points = pointList;
+        return env.fromElements(block);
     }
 
     public static DataSet<Point> getDefaultPointDataSet(ExecutionEnvironment env, int size, int parallel) {
