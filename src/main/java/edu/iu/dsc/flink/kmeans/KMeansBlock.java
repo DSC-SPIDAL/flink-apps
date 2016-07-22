@@ -52,7 +52,7 @@ public class KMeansBlock {
               time = p.f1.time;
               count++;
             }
-            collector.collect(new Tuple2<Integer, Point>(index, new Point(x/count, y/count, time)));
+            collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, time)));
           }
         })
         // count and sum point coordinates for each centroid
@@ -92,7 +92,7 @@ public class KMeansBlock {
             }
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-                collector.collect(new Centroid(ce.getKey(), ce.getValue().x/c, ce.getValue().y/c, time));
+              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time));
             }
           }
         });
@@ -108,7 +108,7 @@ public class KMeansBlock {
       env.execute("KMeans Example");
     } else {
       System.out.println("Printing result to stdout. Use --output to specify output path.");
-        finalCentroids.print();
+      finalCentroids.print();
     }
   }
 
@@ -117,7 +117,8 @@ public class KMeansBlock {
     if (params.has("centroids")) {
       centroids = env.readCsvFile(params.get("centroids"))
           .fieldDelimiter(" ")
-          .pojoType(Centroid.class, "id", "x", "y").setParallelism(params.getInt("parallel", 1));;
+          .pojoType(Centroid.class, "id", "x", "y").setParallelism(params.getInt("parallel", 1));
+      ;
     } else {
       System.out.println("Executing K-Means example with default centroid data set.");
       System.out.println("Use --centroids to specify file input.");
@@ -139,13 +140,18 @@ public class KMeansBlock {
     return points;
   }
 
-  /** Determines the closest cluster center for a data point. */
+  /**
+   * Determines the closest cluster center for a data point.
+   */
   public static final class SelectNearestCenter extends RichFlatMapFunction<PointBlock, Tuple2<Integer, Point>> {
     private Collection<Centroid> centroids;
     private Map<Integer, Point> centroidMap;
     private Map<Integer, Integer> counts;
     private Map<Integer, Long> currentTimes;
-    /** Reads the centroid values from a broadcast variable into a collection. */
+
+    /**
+     * Reads the centroid values from a broadcast variable into a collection.
+     */
     @Override
     public void open(Configuration parameters) throws Exception {
       this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
@@ -153,7 +159,7 @@ public class KMeansBlock {
       counts = new HashMap<Integer, Integer>();
       currentTimes = new HashMap<Integer, Long>();
 
-      for (Centroid c: centroids) {
+      for (Centroid c : centroids) {
         centroidMap.put(c.id, new Point(0, 0));
         counts.put(c.id, 0);
         currentTimes.put(c.id, c.time);
@@ -197,8 +203,12 @@ public class KMeansBlock {
         int c = counts.get(ce.getKey());
         long currentTime = currentTimes.get(ce.getKey());
         long accuTime = System.nanoTime() - time + currentTime;
-        collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, accuTime)));
+        if (c == 0) {
+          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(0, 0, accuTime)));
+        } else {
+          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, accuTime)));
+        }
       }
-     }
+    }
   }
 }
