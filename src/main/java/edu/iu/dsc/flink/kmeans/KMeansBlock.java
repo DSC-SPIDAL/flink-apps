@@ -92,8 +92,7 @@ public class KMeansBlock {
             }
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              long t = time;
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x/c, ce.getValue().y/c, t));
+                collector.collect(new Centroid(ce.getKey(), ce.getValue().x/c, ce.getValue().y/c, time));
             }
           }
         });
@@ -101,25 +100,17 @@ public class KMeansBlock {
     // feed new centroids back into next iteration
     DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
 
-    DataSet<Tuple2<Integer, Point>> clusteredPoints = points
-        // assign points to final clusters
-        .flatMap(new SelectNearestCenter()).withBroadcastSet(finalCentroids, "centroids");
-
     // emit result
     if (params.has("output")) {
-      clusteredPoints.writeAsCsv(params.get("output"), "\n", " ");
+      finalCentroids.writeAsCsv(params.get("output"), "\n", " ");
 
       // since file sinks are lazy, we trigger the execution explicitly
       env.execute("KMeans Example");
     } else {
       System.out.println("Printing result to stdout. Use --output to specify output path.");
-      clusteredPoints.print();
+        finalCentroids.print();
     }
   }
-
-  // *************************************************************************
-  //     DATA SOURCE READING (POINTS AND CENTROIDS)
-  // *************************************************************************
 
   private static DataSet<Centroid> getCentroidDataSet(ParameterTool params, ExecutionEnvironment env) {
     DataSet<Centroid> centroids;
@@ -206,8 +197,8 @@ public class KMeansBlock {
         int c = counts.get(ce.getKey());
         long currentTime = currentTimes.get(ce.getKey());
         long accuTime = System.nanoTime() - time + currentTime;
-        collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x, ce.getValue().y, accuTime)));
+        collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, accuTime)));
       }
-    }
+     }
   }
 }
