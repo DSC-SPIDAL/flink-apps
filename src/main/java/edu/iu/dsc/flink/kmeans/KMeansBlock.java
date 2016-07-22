@@ -39,20 +39,43 @@ public class KMeansBlock {
           @Override
           public void combine(Iterable<Tuple2<Integer, Point>> iterable,
                               Collector<Tuple2<Integer, Point>> collector) throws Exception {
+            long startTime = System.nanoTime();
+            Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+            Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
             Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
             int index = -1;
-            double x = 0, y = 0;
-            int count = 0;
+            int count;
             long time = 0;
+            long reductionTime = 0;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
-              x += p.f1.x;
-              y += p.f1.y;
               index = p.f0;
-              time = p.f1.time;
+              Centroid centroid;
+              if (centroidMap.containsKey(p.f0)) {
+                centroid = centroidMap.get(p.f0);
+                centroidMap.get(p.f0);
+                count = counts.get(p.f0);
+              } else {
+                centroid = new Centroid(index, 0, 0);
+                centroidMap.put(p.f0, centroid);
+                count = 0;
+              }
               count++;
+              centroid.x += p.f1.x;
+              centroid.y += p.f1.y;
+              time = p.f1.time;
+              reductionTime = p.f1.reductionTime;
+
+              counts.remove(p.f0);
+              counts.put(p.f0, count);
             }
-            collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count, time)));
+            long endTime = System.nanoTime();
+            reductionTime += endTime - startTime;
+            for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+              int c = counts.get(ce.getKey());
+              collector.collect(new Tuple2<Integer, Point>(ce.getKey(),
+                  new Point(ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
+            }
           }
         })
         // count and sum point coordinates for each centroid
@@ -60,6 +83,7 @@ public class KMeansBlock {
           @Override
           public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                              Collector<Centroid> collector) throws Exception {
+            long startTime = System.nanoTime();
             Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
             Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
@@ -67,6 +91,7 @@ public class KMeansBlock {
             double x = 0, y = 0;
             int count = 0;
             long time = 0;
+            long reductionTime = 0;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
               x += p.f1.x;
@@ -86,13 +111,16 @@ public class KMeansBlock {
               centroid.x += p.f1.x;
               centroid.y += p.f1.y;
               time = p.f1.time;
+              reductionTime = p.f1.reductionTime;
 
               counts.remove(p.f0);
               counts.put(p.f0, count);
             }
+            long endTime = System.nanoTime();
+            reductionTime += endTime - startTime;
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time));
+              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time, reductionTime));
             }
           }
         });

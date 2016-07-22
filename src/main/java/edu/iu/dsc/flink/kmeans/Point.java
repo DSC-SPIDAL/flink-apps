@@ -11,6 +11,8 @@ public class Point implements Serializable {
 
     public long time;
 
+    public long reductionTime;
+
     public Point() {}
 
     public Point(double x, double y) {
@@ -22,6 +24,13 @@ public class Point implements Serializable {
         this.x = x;
         this.y = y;
         this.time = time;
+    }
+
+    public Point(double x, double y, long time, long reductionTime) {
+        this.x = x;
+        this.y = y;
+        this.time = time;
+        this.reductionTime = reductionTime;
     }
 
     public Point add(Point other) {
@@ -46,6 +55,6 @@ public class Point implements Serializable {
 
     @Override
     public String toString() {
-        return x + " " + y + " " + (((double)time) / 1000000);
+        return x + " " + y + " " + ((double)time) / 1000000 + " " + ((double)reductionTime) / 1000000;
     }
 }

@@ -93,6 +93,7 @@ public class KMeans {
                 double x = 0, y = 0;
                 int count = 0;
                 long time = 0;
+                long reductionTime = 0;
                 while (it.hasNext()) {
                   Tuple2<Integer, Point> p = it.next();
                   x += p.f1.x;
@@ -112,15 +113,17 @@ public class KMeans {
                   centroid.x += p.f1.x;
                   centroid.y += p.f1.y;
                   time = p.f1.time;
+                  reductionTime = p.f1.reductionTime;
 
                   counts.remove(p.f0);
                   counts.put(p.f0, count);
                 }
                 long endTime = System.nanoTime();
-                time += endTime - startTime;
+                reductionTime += endTime - startTime;
                 for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                   int c = counts.get(ce.getKey());
-                  collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, time)));
+                  collector.collect(new Tuple2<Integer, Point>(ce.getKey(),
+                      new Point(ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
                 }
               }
             })
@@ -137,6 +140,7 @@ public class KMeans {
             double x = 0, y = 0;
             int count = 0;
             long time = 0;
+            long reductionTime = 0;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
               x += p.f1.x;
@@ -156,15 +160,16 @@ public class KMeans {
               centroid.x += p.f1.x;
               centroid.y += p.f1.y;
               time = p.f1.time;
+              reductionTime = p.f1.reductionTime;
 
               counts.remove(p.f0);
               counts.put(p.f0, count);
             }
             long endTime = System.nanoTime();
-            time += endTime - startTime;
+            reductionTime += endTime - startTime;
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time));
+              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time, reductionTime));
             }
           }
         });
