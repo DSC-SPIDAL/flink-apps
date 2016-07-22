@@ -151,19 +151,15 @@ public class KMeans {
         // feed new centroids back into next iteration
         DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
 
-        DataSet<Tuple2<Integer, Point>> clusteredPoints = points
-                // assign points to final clusters
-                .map(new SelectNearestCenter()).withBroadcastSet(finalCentroids, "centroids");
-
         // emit result
         if (params.has("output")) {
-            clusteredPoints.writeAsCsv(params.get("output"), "\n", " ");
+            finalCentroids.writeAsCsv(params.get("output"), "\n", " ");
 
             // since file sinks are lazy, we trigger the execution explicitly
             env.execute("KMeans Example");
         } else {
             System.out.println("Printing result to stdout. Use --output to specify output path.");
-            clusteredPoints.print();
+            finalCentroids.print();
         }
     }
 
