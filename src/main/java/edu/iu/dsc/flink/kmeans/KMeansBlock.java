@@ -79,7 +79,7 @@ public class KMeansBlock {
           }
         })
         // count and sum point coordinates for each centroid
-        .reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
+        .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
           @Override
           public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                              Collector<Centroid> collector) throws Exception {
