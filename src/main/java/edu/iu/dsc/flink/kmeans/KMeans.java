@@ -80,7 +80,7 @@ public class KMeans {
 
     DataSet<Centroid> newCentroids = points
         // compute closest centroid for each point
-        .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").
+        .map(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").groupBy(0).
             combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
               @Override
               public void combine(Iterable<Tuple2<Integer, Point>> iterable,
@@ -90,14 +90,11 @@ public class KMeans {
                 Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                 Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
                 int index = -1;
-                double x = 0, y = 0;
                 int count = 0;
                 long time = 0;
                 long reductionTime = 0;
                 while (it.hasNext()) {
                   Tuple2<Integer, Point> p = it.next();
-                  x += p.f1.x;
-                  y += p.f1.y;
                   index = p.f0;
                   Centroid centroid;
                   if (centroidMap.containsKey(p.f0)) {
@@ -137,14 +134,11 @@ public class KMeans {
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
             Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
             int index = -1;
-            double x = 0, y = 0;
             int count = 0;
             long time = 0;
             long reductionTime = 0;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
-              x += p.f1.x;
-              y += p.f1.y;
               index = p.f0;
               Centroid centroid;
               if (centroidMap.containsKey(p.f0)) {
