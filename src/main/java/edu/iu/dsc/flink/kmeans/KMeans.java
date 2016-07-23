@@ -179,7 +179,7 @@ public class KMeans {
 
     // emit result
     if (params.has("output")) {
-      finalCentroids.writeAsCsv(params.get("output"), "\n", " ");
+      finalCentroids.writeAsText(params.get("output"));
 
       // since file sinks are lazy, we trigger the execution explicitly
       env.execute("KMeans Example");
