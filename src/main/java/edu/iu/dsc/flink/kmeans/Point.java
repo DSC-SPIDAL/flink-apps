@@ -9,9 +9,9 @@ public class Point implements Serializable {
 
     public double x, y;
 
-    public long time;
+    public transient long time;
 
-    public long reductionTime;
+    public transient long reductionTime;
 
     public Point() {}
 
