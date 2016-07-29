@@ -189,7 +189,7 @@ public class KMeansBlock {
         counts.put(c.id, 0);
         currentTimes.put(c.id, c.time);
       }
-      System.out.println("No of centroids: " + centroids.size());
+      //System.out.println("No of centroids: " + centroids.size());
     }
 
     @Override
