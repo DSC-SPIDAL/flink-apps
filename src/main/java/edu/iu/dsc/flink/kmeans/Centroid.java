@@ -8,6 +8,8 @@ import edu.iu.dsc.flink.kmeans.utils.Timing;
 public class Centroid extends Point {
     public int id;
 
+    public int mapId;
+
     public Centroid() {}
 
     public Centroid(int id, double x, double y) {
@@ -18,6 +20,19 @@ public class Centroid extends Point {
     public Centroid(int id, double x, double y, long time) {
         super(x, y, time);
         this.id = id;
+    }
+
+
+    public Centroid(int id, int mapId, double x, double y, long time) {
+        super(x, y, time);
+        this.id = id;
+        this.mapId = mapId;
+    }
+
+    public Centroid(int id, int mapId, double x, double y, long time, long reductionTime) {
+        super(x, y, time, reductionTime);
+        this.id = id;
+        this.mapId = mapId;
     }
 
     public Centroid(int id, double x, double y, long time, long reductionTime) {
