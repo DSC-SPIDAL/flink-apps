@@ -52,6 +52,7 @@ public class KMeansBlockTiming {
                         Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
                         int index = -1;
+                        int mapIndex = 0;
                         int count;
                         long time = 0;
                         long reductionTime = 0;
@@ -64,7 +65,7 @@ public class KMeansBlockTiming {
                                 centroidMap.get(p.f0);
                                 count = counts.get(p.f0);
                             } else {
-                                centroid = new Centroid(index, 0, 0);
+                                centroid = new Centroid(p.f0, 0, 0);
                                 centroidMap.put(p.f0, centroid);
                                 count = 0;
                             }
@@ -127,7 +128,9 @@ public class KMeansBlockTiming {
                             count++;
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
-                            time = p.f1.time;
+                            if (centroid.id == index || centroid.id % index == 0) {
+                                time = p.f1.time;
+                            }
                             reductionTime = p.f1.reductionTime;
 
                             counts.remove(p.f0);
