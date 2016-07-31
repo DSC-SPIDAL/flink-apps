@@ -53,7 +53,7 @@ public class KMeansBlockTiming {
                         Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
                         int mapIndex = -1;
-                        int count;
+                        int count = 0;
                         long time = 0;
                         long reductionTime = 0;
                         while (it.hasNext()) {
@@ -227,7 +227,7 @@ public class KMeansBlockTiming {
         public void flatMap(PointBlock block, Collector<Tuple2<Integer, Centroid>> collector) throws Exception {
             // check all cluster centers
             List<Point> points = block.points;
-            long mapTime = 0;
+            long mapTime = -1000000000;
             // we get the incoming time for this map
             for (Centroid centroid : centroids) {
                 // compute distance
