@@ -37,6 +37,7 @@ public class KMeansBlockTiming {
 
                     private int index = 0;
                     private int tasks = 0;
+
                     @Override
                     public void open(Configuration parameters) throws Exception {
                         super.open(parameters);
@@ -51,7 +52,7 @@ public class KMeansBlockTiming {
                         Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
                         Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
-                        int mapIndex = 0;
+                        int mapIndex = -1;
                         int count;
                         long time = 0;
                         long reductionTime = 0;
@@ -71,7 +72,11 @@ public class KMeansBlockTiming {
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
                             time = p.f1.time;
+//                            if (mapIndex != -1 && mapIndex != p.f1.mapId) {
+//                                System.out.println("Errrrrrrrrrrrrrrrrrrr: ");
+//                            }
                             mapIndex = p.f1.mapId;
+                           // System.out.println("%%%%%%%%%%%%%%%%%%%%% Combiner map id: " + mapIndex + " combiner index: " + index);
                             reductionTime = p.f1.reductionTime;
 
                             counts.remove(p.f0);
@@ -82,7 +87,7 @@ public class KMeansBlockTiming {
                         for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
                             int c = counts.get(ce.getKey());
                             collector.collect(new Tuple2<Integer, Centroid>(ce.getKey(),
-                                new Centroid(ce.getKey(), mapIndex, ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
+                                    new Centroid(ce.getKey(), mapIndex, ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
                         }
                     }
                 })
@@ -90,6 +95,7 @@ public class KMeansBlockTiming {
                 .groupBy(0).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Centroid>, Centroid>() {
                     private int index = 0;
                     private int tasks = 0;
+
                     @Override
                     public void open(Configuration parameters) throws Exception {
                         super.open(parameters);
@@ -107,7 +113,6 @@ public class KMeansBlockTiming {
                         Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
                         Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
-                        int index = -1;
                         int count = 0;
                         long time = 0;
                         long reductionTime = 0;
@@ -126,9 +131,12 @@ public class KMeansBlockTiming {
                             count++;
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
-                            if (centroid.mapId == this.index) {
+                            if (p.f1.mapId == this.index) {
                                 time = p.f1.time;
-                            }
+                               // System.out.println("********************** mapid = " + p.f1.mapId + " index= " + index);
+                            }/* else {
+                                System.out.println("#######################  mapid = " + p.f1.mapId + " index= " + index);
+                            }*/
                             reductionTime = p.f1.reductionTime;
 
                             counts.remove(p.f0);
