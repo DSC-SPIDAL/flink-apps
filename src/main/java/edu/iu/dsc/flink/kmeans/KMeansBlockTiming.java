@@ -28,85 +28,117 @@ public class KMeansBlockTiming {
         DataSet<Centroid> centroids = getCentroidDataSet(params, env);
 
         // set number of bulk iterations for KMeans algorithm
-        IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 2));
+        IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
 
         DataSet<Centroid> newCentroids = points
                 // compute closest centroid for each point
                 .flatMap(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").
                         groupBy(0).combineGroup(new RichGroupCombineFunction<Tuple2<Integer, Centroid>, Tuple2<Integer, Centroid>>() {
 
+                    private int index = 0;
+                    private int tasks = 0;
                     @Override
                     public void open(Configuration parameters) throws Exception {
                         super.open(parameters);
+                        index = getRuntimeContext().getIndexOfThisSubtask();
+                        tasks = getRuntimeContext().getNumberOfParallelSubtasks();
                     }
 
                     @Override
                     public void combine(Iterable<Tuple2<Integer, Centroid>> iterable,
                                         Collector<Tuple2<Integer, Centroid>> collector) throws Exception {
                         long startTime = System.nanoTime();
+                        Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+                        Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
-                        int count = 0;
+                        int index = -1;
+                        int count;
                         long time = 0;
                         long reductionTime = 0;
-                        Centroid centroid = null;
-                        int key = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Centroid> p = it.next();
-                            if (centroid == null) {
-                                centroid = new Centroid(p.f0, p.f1.mapId, 0, 0);
+                            index = p.f0;
+                            Centroid centroid;
+                            if (centroidMap.containsKey(p.f0)) {
+                                centroid = centroidMap.get(p.f0);
+                                centroidMap.get(p.f0);
+                                count = counts.get(p.f0);
+                            } else {
+                                centroid = new Centroid(index, 0, 0);
+                                centroidMap.put(p.f0, centroid);
+                                count = 0;
                             }
                             count++;
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
                             time = p.f1.time;
                             reductionTime = p.f1.reductionTime;
-                            key = p.f0;
+
+                            counts.remove(p.f0);
+                            counts.put(p.f0, count);
                         }
                         long endTime = System.nanoTime();
                         reductionTime += endTime - startTime;
-                        collector.collect(new Tuple2<Integer, Centroid>(key,
-                                    new Centroid(key, centroid.mapId,
-                                            centroid.x / count, centroid.y / count,
-                                            time, reductionTime)));
+                        for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+                            int c = counts.get(ce.getKey());
+                            collector.collect(new Tuple2<Integer, Centroid>(ce.getKey(),
+                                new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
+                        }
                     }
                 })
                         // count and sum point coordinates for each centroid
                 .groupBy(0).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Centroid>, Centroid>() {
-                    int index;
+                    private int index = 0;
+                    private int tasks = 0;
                     @Override
                     public void open(Configuration parameters) throws Exception {
                         super.open(parameters);
                         index = getRuntimeContext().getIndexOfThisSubtask();
+                        tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+                        if (index == 0) {
+                            index = tasks;
+                        }
                     }
 
                     @Override
                     public void reduce(Iterable<Tuple2<Integer, Centroid>> iterable,
                                        Collector<Centroid> collector) throws Exception {
                         long startTime = System.nanoTime();
+                        Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+                        Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
                         Iterator<Tuple2<Integer, Centroid>> it = iterable.iterator();
+                        int index = -1;
                         int count = 0;
                         long time = 0;
                         long reductionTime = 0;
-                        Centroid centroid = null;
-                        int key = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Centroid> p = it.next();
-                            if (centroid == null) {
-                                centroid = new Centroid(p.f0, p.f1.mapId, 0, 0);
+                            index = p.f0;
+                            Centroid centroid;
+                            if (centroidMap.containsKey(p.f0)) {
+                                centroid = centroidMap.get(p.f0);
+                                centroidMap.get(p.f0);
+                                count = counts.get(p.f0);
+                            } else {
+                                centroid = new Centroid(index, 0, 0);
+                                centroidMap.put(p.f0, centroid);
+                                count = 0;
                             }
                             count++;
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
                             time = p.f1.time;
                             reductionTime = p.f1.reductionTime;
-                            key = p.f0;
+
+                            counts.remove(p.f0);
+                            counts.put(p.f0, count);
                         }
                         long endTime = System.nanoTime();
                         reductionTime += endTime - startTime;
-                        collector.collect(
-                                new Centroid(key, centroid.mapId,
-                                        centroid.x / count, centroid.y / count,
-                                        time, reductionTime));
+                        for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+                            int c = counts.get(ce.getKey());
+                            collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time, reductionTime));
+                        }
                     }
                 });
 
@@ -172,6 +204,9 @@ public class KMeansBlockTiming {
             tasks = getRuntimeContext().getNumberOfParallelSubtasks();
             centroidMap = new HashMap<Integer, Point>();
             counts = new HashMap<Integer, Integer>();
+            if (index == 0) {
+                index = tasks;
+            }
 
             for (Centroid c : centroids) {
                 centroidMap.put(c.id, new Point(0, 0));
@@ -185,9 +220,6 @@ public class KMeansBlockTiming {
             List<Point> points = block.points;
             long mapTime = 0;
             // we get the incoming time for this map
-            if (index == 0) {
-                index = tasks;
-            }
             for (Centroid centroid : centroids) {
                 // compute distance
                 if (centroid.id == index || centroid.id % index == 0) {

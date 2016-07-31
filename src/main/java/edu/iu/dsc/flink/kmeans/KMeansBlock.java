@@ -30,7 +30,7 @@ public class KMeansBlock {
     DataSet<Centroid> centroids = getCentroidDataSet(params, env);
 
     // set number of bulk iterations for KMeans algorithm
-    IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 2));
+    IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
 
     DataSet<Centroid> newCentroids = points
         // compute closest centroid for each point
