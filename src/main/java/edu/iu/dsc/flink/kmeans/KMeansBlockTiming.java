@@ -43,6 +43,7 @@ public class KMeansBlockTiming {
                         super.open(parameters);
                         index = getRuntimeContext().getIndexOfThisSubtask();
                         tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+                        index = index % tasks;
                     }
 
                     @Override
@@ -101,9 +102,7 @@ public class KMeansBlockTiming {
                         super.open(parameters);
                         index = getRuntimeContext().getIndexOfThisSubtask();
                         tasks = getRuntimeContext().getNumberOfParallelSubtasks();
-                        if (index == 0) {
-                            index = tasks;
-                        }
+                        index = index % tasks;
                     }
 
                     @Override
@@ -213,9 +212,7 @@ public class KMeansBlockTiming {
             tasks = getRuntimeContext().getNumberOfParallelSubtasks();
             centroidMap = new HashMap<Integer, Point>();
             counts = new HashMap<Integer, Integer>();
-            if (index == 0) {
-                index = tasks;
-            }
+            index = index % tasks;
 
             for (Centroid c : centroids) {
                 centroidMap.put(c.id, new Point(0, 0));
