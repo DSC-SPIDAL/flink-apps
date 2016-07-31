@@ -95,6 +95,9 @@ public class KMeansBlockTiming {
                         super.open(parameters);
                         index = getRuntimeContext().getIndexOfThisSubtask();
                         tasks = getRuntimeContext().getNumberOfParallelSubtasks();
+                        if (index == 0) {
+                            index = tasks;
+                        }
                     }
 
                     @Override
@@ -110,21 +113,20 @@ public class KMeansBlockTiming {
                         long reductionTime = 0;
                         while (it.hasNext()) {
                             Tuple2<Integer, Centroid> p = it.next();
-                            index = p.f0;
                             Centroid centroid;
                             if (centroidMap.containsKey(p.f0)) {
                                 centroid = centroidMap.get(p.f0);
                                 centroidMap.get(p.f0);
                                 count = counts.get(p.f0);
                             } else {
-                                centroid = new Centroid(index, 0, 0);
+                                centroid = new Centroid(p.f0, 0, 0);
                                 centroidMap.put(p.f0, centroid);
                                 count = 0;
                             }
                             count++;
                             centroid.x += p.f1.x;
                             centroid.y += p.f1.y;
-                            if (centroid.id % tasks == index) {
+                            if (centroid.mapId == this.index) {
                                 time = p.f1.time;
                             }
                             reductionTime = p.f1.reductionTime;
@@ -203,6 +205,9 @@ public class KMeansBlockTiming {
             tasks = getRuntimeContext().getNumberOfParallelSubtasks();
             centroidMap = new HashMap<Integer, Point>();
             counts = new HashMap<Integer, Integer>();
+            if (index == 0) {
+                index = tasks;
+            }
 
             for (Centroid c : centroids) {
                 centroidMap.put(c.id, new Point(0, 0));
