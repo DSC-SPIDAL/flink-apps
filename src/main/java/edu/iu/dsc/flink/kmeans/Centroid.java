@@ -8,7 +8,7 @@ import edu.iu.dsc.flink.kmeans.utils.Timing;
 public class Centroid extends Point {
     public int id;
 
-    public int mapId;
+    public transient int mapId;
 
     public Centroid() {}
 

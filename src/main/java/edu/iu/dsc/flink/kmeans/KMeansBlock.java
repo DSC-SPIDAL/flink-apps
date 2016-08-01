@@ -173,7 +173,7 @@ public class KMeansBlock {
     private Map<Integer, Point> centroidMap;
     private Map<Integer, Integer> counts;
     private Map<Integer, Long> currentTimes;
-
+    private int index;
     /**
      * Reads the centroid values from a broadcast variable into a collection.
      */
@@ -183,6 +183,7 @@ public class KMeansBlock {
       centroidMap = new HashMap<Integer, Point>();
       counts = new HashMap<Integer, Integer>();
       currentTimes = new HashMap<Integer, Long>();
+      index = getRuntimeContext().getIndexOfThisSubtask();
 
       for (Centroid c : centroids) {
         centroidMap.put(c.id, new Point(0, 0));
@@ -197,6 +198,7 @@ public class KMeansBlock {
       long time = System.nanoTime();
       // check all cluster centers
       List<Point> points = block.points;
+      long startTime = System.currentTimeMillis();
       for (Point p : points) {
         double minDistance = Double.MAX_VALUE;
         int closestCentroidId = -1;
@@ -223,6 +225,7 @@ public class KMeansBlock {
           counts.put(closestCentroidId, count);
         }
       }
+      System.out.println(index +"," + centroids.size() + "," + (System.currentTimeMillis() - startTime));
       // emit a new record with the center id and the data point.
       for (Map.Entry<Integer, Point> ce : centroidMap.entrySet()) {
         int c = counts.get(ce.getKey());
