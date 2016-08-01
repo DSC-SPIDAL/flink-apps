@@ -262,7 +262,7 @@ public class KMeansBlockTiming {
                 }
             }
             long accuTime = (System.nanoTime() - time) + mapTime;
-            System.out.println(index +"," + time);
+            System.out.println(index +"," + (System.nanoTime() - time));
             // emit a new record with the center id and the data point.
             for (Map.Entry<Integer, Point> ce : centroidMap.entrySet()) {
                 int c = counts.get(ce.getKey());
