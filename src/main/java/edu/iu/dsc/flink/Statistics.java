@@ -4,7 +4,7 @@ import edu.indiana.soic.spidal.common.DoubleStatistics;
 import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import org.saliya.flinkit.io.ShortMatrixInputFormat;
+import edu.iu.dsc.flink.io.ShortMatrixInputFormat;
 
 import java.util.List;
 

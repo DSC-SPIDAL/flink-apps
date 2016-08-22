@@ -3,9 +3,9 @@ package edu.iu.dsc.flink;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.io.ParallelIteratorInputFormat;
-import org.saliya.flinkit.io.MatrixIterator;
-import org.saliya.flinkit.io.RowBlock;
-import org.saliya.flinkit.io.RowBlockType;
+import edu.iu.dsc.flink.io.MatrixIterator;
+import edu.iu.dsc.flink.io.RowBlock;
+import edu.iu.dsc.flink.io.RowBlockType;
 
 public class IteratorTest {
     public static void main(String[] args) throws Exception {

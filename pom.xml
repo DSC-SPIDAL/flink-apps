@@ -97,6 +97,11 @@ under the License.
 			<artifactId>commons-cli</artifactId>
 			<version>1.2</version>
 		</dependency>
+		<dependency>
+			<groupId>edu.indiana.soic.spidal</groupId>
+			<artifactId>common</artifactId>
+			<version>1.0</version>
+		</dependency>
 	</dependencies>
 
 	<profiles>
