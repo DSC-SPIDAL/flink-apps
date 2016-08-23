@@ -33,7 +33,7 @@ public class MatrixMultiply {
     programOptions.addOption("m", true, "nxm matrix A");
     programOptions.addOption("p", true, "mxp matrix B");
     programOptions.addOption("i", true, "Input File name");
-    programOptions.addOption("o", true, "Input File name");
+    programOptions.addOption("o", true, "Output File name");
     programOptions.addOption("t", false, "Testing mode");
     Option option = new Option("tf", true, "Test ");
     option.setRequired(false);
@@ -62,20 +62,35 @@ public class MatrixMultiply {
 
     // first generate the input matrix and write it
     MatrixFileGenerator.writeMatrixFile(n, m, true, inputFileName);
-
+    double[] A = MatrixFileGenerator.readMatrixFile(inputFileName, n, m, true);
+    Matrix Amatrix = new Matrix(A, n, m, true);
+    System.out.println("Matrix A");
+    System.out.println(Amatrix.toString());
     // now generate the B matrix
     Matrix matrixB = new Matrix();
-    matrixB.rows = n;
+    matrixB.rows = m;
     matrixB.cols = p;
-    int matrixBdataSize = matrixB.cols * n;
+    int matrixBdataSize = matrixB.cols * matrixB.rows;
     matrixB.data = new double[matrixBdataSize];
     Random random = new Random();
     for (int i = 0; i < matrixBdataSize; i++) {
       matrixB.data[i] = random.nextDouble();
     }
+    System.out.println("Matrix B");
+    System.out.println(matrixB.toString());
+
+    // setup the custom input format for the matrix
+    MatrixInputFormat inputFormat = new MatrixInputFormat();
+    inputFormat.setBigEndian(true);
+    inputFormat.setGlobalColumnCount(n);
+    inputFormat.setGlobalRowCount(matrixB.rows);
+
+    final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
+    DataSet<MatrixBlock> blockDataSet = env.readFile(inputFormat, inputFileName);
 
     if(!testMode) {
-      matrixMultiply(n, matrixB, inputFileName, outputFileName);
+      DataSet<Matrix> mm = matrixMultiply(env, blockDataSet, matrixB);
+      mm.writeAsText(outputFileName);
     } else {
       double[] aData = MatrixFileGenerator.readMatrixFile(inputFileName, n, m, true);
       MatrixBlock aBlock = new MatrixBlock(0, 0, n, m, n);
@@ -86,24 +101,16 @@ public class MatrixMultiply {
       cMatrix.data = c;
       Files.write(cMatrix.toString(), new File(testFile), Charsets.UTF_8);
       // now multiply using flink
-      matrixMultiply(n, matrixB, inputFileName, outputFileName);
+      DataSet<Matrix> mm = matrixMultiply(env, blockDataSet, matrixB);
+      mm.writeAsText(outputFileName);
     }
+    env.execute();
   }
 
-  private static void matrixMultiply(int matrixRows, Matrix matrixB, String inputFile, String outFile) throws Exception {
-    // setup the custom input format for the matrix
-    MatrixInputFormat inputFormat = new MatrixInputFormat();
-    inputFormat.setBigEndian(true);
-    inputFormat.setGlobalColumnCount(matrixRows);
-    inputFormat.setGlobalRowCount(matrixB.rows);
-
-    final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-
-    DataSet<MatrixBlock> blockDataSet = env.readFile(inputFormat, inputFile);
-    //DataSet<MatrixBlock> blockDataSet2 = env.fromCollection(matrixABlocks);
+  private static DataSet<Matrix> matrixMultiply(final ExecutionEnvironment env, DataSet<MatrixBlock> blockDataSet,
+                                     Matrix matrixB) throws Exception {
     DataSet<Matrix> matrixDataSet = env.fromElements(matrixB);
-
-    blockDataSet.map(new RichMapFunction<MatrixBlock, MatrixBlock>() {
+    DataSet<Matrix> mm = blockDataSet.map(new RichMapFunction<MatrixBlock, MatrixBlock>() {
       @Override
       public MatrixBlock map(MatrixBlock matrixABlock) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("single_matrix");
@@ -112,7 +119,8 @@ public class MatrixMultiply {
         System.out.format("Multiply: (%d) = %s\n", matrixABlock.index, matrixABlock.toString());
         int cDataSize = matrixB.cols *  matrixABlock.blockRows;
         double []C = new double[cDataSize];
-        Utils.matrixMultiply(matrixABlock.data, matrixB.data, matrixABlock.matrixRows, matrixABlock.matrixCols, matrixB.cols, matrixABlock.blockRows, C);
+        Utils.matrixMultiply(matrixABlock.data, matrixB.data, matrixABlock.matrixRows,
+                matrixABlock.matrixCols, matrixB.cols, matrixABlock.blockRows, C);
 
         MatrixBlock b = new MatrixBlock();
         b.data = C;
@@ -150,9 +158,8 @@ public class MatrixMultiply {
         }
         collector.collect(m);
       }
-    }).writeAsText(outFile);
-
-    env.execute();
+    });
+    return mm;
   }
 
   private static void multiply(List<MatrixBlock> matrixABlocks, Matrix matrixB) {

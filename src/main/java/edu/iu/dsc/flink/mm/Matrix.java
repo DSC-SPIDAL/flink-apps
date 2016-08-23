@@ -17,6 +17,13 @@ public class Matrix implements Serializable {
   public Matrix() {
   }
 
+  public Matrix(double[] data, int rows, int cols, boolean columnMajor) {
+    this.data = data;
+    this.rows = rows;
+    this.cols = cols;
+    this.columnMajor = columnMajor;
+  }
+
   public Matrix(int rows, int cols) {
     this.rows = rows;
     this.cols = cols;

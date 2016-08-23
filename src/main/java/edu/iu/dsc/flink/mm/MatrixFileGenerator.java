@@ -54,7 +54,7 @@ public class MatrixFileGenerator {
           pointBufferedStream);
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; j++) {
-          pointStream.writeDouble(random.nextDouble());
+          pointStream.writeDouble(random.nextInt(10));
         }
       }
     }

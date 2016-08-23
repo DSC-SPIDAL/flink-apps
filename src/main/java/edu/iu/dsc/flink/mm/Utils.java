@@ -13,7 +13,8 @@ public class Utils {
    * @param D
    * @param C
    */
-  public static void matrixMultiply(double[] A, double[] B, int N, int M, int D, int rowBlockSize, double[] C) {
+  public static void matrixMultiply(double[] A, double[] B, int N, int M, int D,
+                                    int rowBlockSize, double[] C) {
     double sum;
     // second matrix cols
     for (int k = 0; k < D; k++) {
@@ -31,17 +32,18 @@ public class Utils {
     }
   }
 
-  public static void main(String[] args) {
-    double[] A1 = new double[] {1, 2, 3, 4, 5, 6, 7, 8};
-    double[] A2 = new double[] {1, 2, 3, 4, 5, 6, 7, 8};
 
-    double[] B = new double[] {1, 1, 1, 1, 1, 1, 1, 1};
+  public static void main(String[] args) {
+    double[] A1 = new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 11};
+    double[] A2 = new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    double[] B = new double[] {1, 1, 1, 1, 2, 1, 1, 1, 1, 1};
 
     double[] C1 = new double[4];
     double[] C2 = new double[4];
 
-    matrixMultiply(A1, B, 4, 4, 2, 2, C1);
-    matrixMultiply(A2, B, 4, 4, 2, 2, C2);
+    matrixMultiply(A1, B, 4, 5, 2, 2, C1);
+    matrixMultiply(A2, B, 4, 5, 2, 2, C2);
 
     printM(C1);
     printM(C2);
