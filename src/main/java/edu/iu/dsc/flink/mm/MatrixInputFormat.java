@@ -1,6 +1,5 @@
 package edu.iu.dsc.flink.mm;
 
-
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.*;
 import org.apache.flink.hadoop.shaded.com.google.common.io.LittleEndianDataInputStream;
@@ -13,9 +12,6 @@ import java.io.IOException;
 public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
   private static final long serialVersionUID = 1L;
 
-  /**
-   * The log.
-   */
   private static final Logger LOG = LoggerFactory
       .getLogger(MatrixInputFormat.class);
 
@@ -87,9 +83,7 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
 
     isRead = true;
     block.setData(reuse);
-
     LOG.info("Block print: " + splitIndex + "->" + block.toString());
-
     return block;
   }
 
