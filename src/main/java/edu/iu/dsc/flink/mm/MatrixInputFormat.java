@@ -34,8 +34,8 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
     LOG.info("Min splits: " + minNumSplits);
 
     FileInputSplit[] splits = new FileInputSplit[minNumSplits];
-    int q = globalColumnCount / minNumSplits;
-    int r = globalColumnCount % minNumSplits;
+    int q = globalRowCount / minNumSplits;
+    int r = globalRowCount % minNumSplits;
 
     long start = 0, length;
     BlockLocation[] blocks;

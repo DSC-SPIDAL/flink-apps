@@ -16,18 +16,20 @@ public class Utils {
   public static void matrixMultiply(double[] A, double[] B, int N, int M, int D,
                                     int rowBlockSize, double[] C) {
     double sum;
-    // second matrix cols
-    for (int k = 0; k < D; k++) {
-      // first matrix rows
-      for (int i = 0; i < rowBlockSize; i++) {
-        // first matrix rows and second matrix cols
+    for (int i = 0; i <rowBlockSize; i++) {
+      for (int j = 0; j < D; j++) {
         sum = 0;
-        for (int j = 0; j < M; j++) {
-          //System.out.println("A index: " + (i * M + j));
-          //System.out.format("B index: %d (k=%d, N=%d, j=%d, i=%d)\n", (k * N + j), k, N, j, i);
-          sum += A[i * M + j] * B[k * N + j];
+        for (int k = 0; k < M; k++) {
+          //System.out.println("i * M + k = " + (i * M + k) );
+          //System.out.println("j * M + k = " + (i * M + k) );
+         // System.out.println((i * M + k));
+          //System.out.println((j * M + k));
+          //System.out.printf("i=%d M=%d k=%d j=%d D=%d blockSize=%d\n", i, M, k, j, D, rowBlockSize);
+          //System.out.printf("A[i * M + k]=%f and B[j * M + k]=%f and i=%d M=%d k=%d j=%d\n", A[i * M + k], B[j * M + k], i, M, k, j);
+          sum += A[i * M + k] * B[j * M + k];
         }
-        C[i * D + k] = sum;
+//        System.out.format("(i * M + k)=%d i=%d M=%d j=%d sum=%f\n", (i * M + j), i, M, j, sum);
+        C[i * D + j] = sum;
       }
     }
   }
@@ -37,22 +39,35 @@ public class Utils {
     double[] A1 = new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 11};
     double[] A2 = new double[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
-    double[] B = new double[] {1, 1, 1, 1, 2, 1, 1, 1, 1, 1};
+    double[] B = new double[] {1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+    System.out.println("A");
+    printM(A1, 2, 5);
+    System.out.println("B");
+    printMColMajor(B, 5, 3);
 
-    double[] C1 = new double[4];
-    double[] C2 = new double[4];
+    double[] C1 = new double[6];
+    double[] C2 = new double[6];
 
-    matrixMultiply(A1, B, 4, 5, 2, 2, C1);
-    matrixMultiply(A2, B, 4, 5, 2, 2, C2);
+    matrixMultiply(A1, B, 4, 5, 3, 2, C1);
+    // matrixMultiply(A2, B, 4, 5, 3, 2, C2);
 
-    printM(C1);
-    printM(C2);
+    printM(C1, 2, 3);
+    // printM(C2, 2, 3);
   }
 
-  private static void printM(double[] c1) {
-    for (int i = 0; i < 2; i++) {
-      for (int j = 0; j < 2; j++) {
-        System.out.format("%f ", c1[i * 2 + j]);
+  private static void printMColMajor(double[] c1, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        System.out.format("%f ", c1[j * rows + i]);
+      }
+      System.out.format("\n");
+    }
+  }
+
+  private static void printM(double[] c1, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        System.out.format("%f ", c1[i * cols + j]);
       }
       System.out.format("\n");
     }

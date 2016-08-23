@@ -24,9 +24,6 @@ public class MatrixMultiply {
   private static final Logger LOG = LoggerFactory
       .getLogger(MatrixMultiply.class);
 
-  private final static String outFile = "/home/supun/dev/projects/dsspidal/flink_mm/flink-mm-git/out.output";
-  private final static String filePath = "/home/supun/dev/projects/dsspidal/flink_mm/flink-mm-git/out.input";
-
   public static void main(String[] args) throws Exception {
     Options programOptions = new Options();
     programOptions.addOption("n", true, "nxm matrix A");
@@ -55,7 +52,7 @@ public class MatrixMultiply {
     String testFile = cmd.getOptionValue("tf");
 
     // delete the out file
-    File deleteFile = new File(outFile);
+    File deleteFile = new File(outputFileName);
     if (deleteFile.exists()) {
       deleteFile.delete();
     }
@@ -63,7 +60,7 @@ public class MatrixMultiply {
     // first generate the input matrix and write it
     MatrixFileGenerator.writeMatrixFile(n, m, true, inputFileName);
     double[] A = MatrixFileGenerator.readMatrixFile(inputFileName, n, m, true);
-    Matrix Amatrix = new Matrix(A, n, m, true);
+    Matrix Amatrix = new Matrix(A, n, m, false);
     System.out.println("Matrix A");
     System.out.println(Amatrix.toString());
     // now generate the B matrix
@@ -74,7 +71,7 @@ public class MatrixMultiply {
     matrixB.data = new double[matrixBdataSize];
     Random random = new Random();
     for (int i = 0; i < matrixBdataSize; i++) {
-      matrixB.data[i] = random.nextDouble();
+      matrixB.data[i] = random.nextInt(10);
     }
     System.out.println("Matrix B");
     System.out.println(matrixB.toString());
@@ -82,8 +79,8 @@ public class MatrixMultiply {
     // setup the custom input format for the matrix
     MatrixInputFormat inputFormat = new MatrixInputFormat();
     inputFormat.setBigEndian(true);
-    inputFormat.setGlobalColumnCount(n);
-    inputFormat.setGlobalRowCount(matrixB.rows);
+    inputFormat.setGlobalColumnCount(m);
+    inputFormat.setGlobalRowCount(n);
 
     final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
     DataSet<MatrixBlock> blockDataSet = env.readFile(inputFormat, inputFileName);
@@ -131,7 +128,7 @@ public class MatrixMultiply {
         // start of this block calculated using the A's cols
         b.start = matrixABlock.start;
 
-        System.out.format("After multiply: (%d) = %s\n", matrixABlock.index, b.toString());
+        System.out.format("After multiply: (%d)\n = %s\n", matrixABlock.index, b.toString());
 
         return b;
       }
