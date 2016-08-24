@@ -102,6 +102,16 @@ under the License.
 			<artifactId>common</artifactId>
 			<version>1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>net.openhft</groupId>
+			<artifactId>affinity</artifactId>
+			<version>3.0</version>
+		</dependency>
+		<dependency>
+			<groupId>net.openhft</groupId>
+			<artifactId>lang</artifactId>
+			<version>6.7.2</version>
+		</dependency>
 	</dependencies>
 
 	<profiles>
