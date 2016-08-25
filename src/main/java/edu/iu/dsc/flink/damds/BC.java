@@ -5,8 +5,6 @@ import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import mpi.MPIException;
 
 public class BC {
-  public static final double INV_SHORT_MAX = 1.0 / Short.MAX_VALUE;
-
   public static void calculateBC(
       double[] preX, int targetDimension, double tCur, short[] distances,
       WeightsWrap1D weights, int blockSize, double[] BC,
@@ -100,7 +98,7 @@ public class BC {
         if (globalRow == globalCol) continue;
 
 
-        origD = distances[procLocalRow * globalColCount + globalCol] * INV_SHORT_MAX;
+        origD = distances[procLocalRow * globalColCount + globalCol] * DAMDSUtils.INV_SHORT_MAX;
         weight = weights.getWeight(procLocalRow, globalCol);
 
         if (origD < 0 || weight == 0) {
