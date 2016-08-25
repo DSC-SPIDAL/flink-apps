@@ -77,21 +77,21 @@ public class MatrixMultiply {
     System.out.println(matrixB.toString());
 
     // setup the custom input format for the matrix
-    MatrixInputFormat inputFormat = new MatrixInputFormat();
+    DoubleMatrixInputFormat inputFormat = new DoubleMatrixInputFormat();
     inputFormat.setBigEndian(true);
     inputFormat.setGlobalColumnCount(m);
     inputFormat.setGlobalRowCount(n);
 
     final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-    DataSet<MatrixBlock> blockDataSet = env.readFile(inputFormat, inputFileName);
+    DataSet<DoubleMatrixBlock> blockDataSet = env.readFile(inputFormat, inputFileName);
 
     if(!testMode) {
       DataSet<Matrix> mm = matrixMultiply(env, blockDataSet, matrixB);
       mm.writeAsText(outputFileName);
     } else {
       double[] aData = MatrixFileGenerator.readMatrixFile(inputFileName, n, m, true);
-      MatrixBlock aBlock = new MatrixBlock(0, 0, n, m, n);
-      aBlock.data = aData;
+      DoubleMatrixBlock aBlock = new DoubleMatrixBlock(0, 0, n, m, n);
+      aBlock.setData(aData);
       // now multiply normally
       double c[] = multiply(aBlock, matrixB);
       Matrix cMatrix = new Matrix(n, p, false);
@@ -104,23 +104,23 @@ public class MatrixMultiply {
     env.execute();
   }
 
-  private static DataSet<Matrix> matrixMultiply(final ExecutionEnvironment env, DataSet<MatrixBlock> blockDataSet,
+  public static DataSet<Matrix> matrixMultiply(final ExecutionEnvironment env, DataSet<DoubleMatrixBlock> blockDataSet,
                                      Matrix matrixB) throws Exception {
     DataSet<Matrix> matrixDataSet = env.fromElements(matrixB);
-    DataSet<Matrix> mm = blockDataSet.map(new RichMapFunction<MatrixBlock, MatrixBlock>() {
+    DataSet<Matrix> mm = blockDataSet.map(new RichMapFunction<DoubleMatrixBlock, DoubleMatrixBlock>() {
       @Override
-      public MatrixBlock map(MatrixBlock matrixABlock) throws Exception {
+      public DoubleMatrixBlock map(DoubleMatrixBlock matrixABlock) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("single_matrix");
         Matrix matrixB = matrix.get(0);
         // System.out.println("Multiply: " + matrixB.toString());
         System.out.format("Multiply: (%d) = %s\n", matrixABlock.index, matrixABlock.toString());
         int cDataSize = matrixB.cols *  matrixABlock.blockRows;
         double []C = new double[cDataSize];
-        Utils.matrixMultiply(matrixABlock.data, matrixB.data, matrixABlock.matrixRows,
+        Utils.matrixMultiply(matrixABlock.getData(), matrixB.data, matrixABlock.matrixRows,
                 matrixABlock.matrixCols, matrixB.cols, matrixABlock.blockRows, C);
 
-        MatrixBlock b = new MatrixBlock();
-        b.data = C;
+        DoubleMatrixBlock b = new DoubleMatrixBlock();
+        b.setData(C);
         b.index = matrixABlock.index;
         b.blockRows = matrixABlock.blockRows;
         b.matrixRows = matrixABlock.matrixRows;
@@ -132,16 +132,16 @@ public class MatrixMultiply {
 
         return b;
       }
-    }).withBroadcastSet(matrixDataSet, "single_matrix").reduceGroup(new GroupReduceFunction<MatrixBlock, Matrix>() {
+    }).withBroadcastSet(matrixDataSet, "single_matrix").reduceGroup(new GroupReduceFunction<DoubleMatrixBlock, Matrix>() {
       @Override
-      public void reduce(Iterable<MatrixBlock> iterable, Collector<Matrix> collector) throws Exception {
+      public void reduce(Iterable<DoubleMatrixBlock> iterable, Collector<Matrix> collector) throws Exception {
         Matrix m = new Matrix();
         m.setColumnMajor(false);
 
         boolean init = false;
-        Iterator<MatrixBlock> b = iterable.iterator();
+        Iterator<DoubleMatrixBlock> b = iterable.iterator();
         while (b.hasNext()) {
-          MatrixBlock matrixBlock = b.next();
+          DoubleMatrixBlock matrixBlock = b.next();
           if (!init) {
             m.data = new double[matrixBlock.matrixCols * matrixBlock.matrixRows];
             m.rows = matrixBlock.matrixRows;
@@ -159,12 +159,12 @@ public class MatrixMultiply {
     return mm;
   }
 
-  private static void multiply(List<MatrixBlock> matrixABlocks, Matrix matrixB) {
+  private static void multiply(List<DoubleMatrixBlock> matrixABlocks, Matrix matrixB) {
     for (int i = 0; i < matrixABlocks.size(); i++) {
-      MatrixBlock matrixABlock = matrixABlocks.get(i);
+      DoubleMatrixBlock matrixABlock = matrixABlocks.get(i);
       int cDataSize = matrixB.cols * matrixABlock.blockRows;
       double[] C = new double[cDataSize];
-      Utils.matrixMultiply(matrixABlock.data, matrixB.data, matrixABlock.matrixRows, matrixABlock.matrixCols, matrixB.cols, matrixABlock.blockRows, C);
+      Utils.matrixMultiply(matrixABlock.getData(), matrixB.data, matrixABlock.matrixRows, matrixABlock.matrixCols, matrixB.cols, matrixABlock.blockRows, C);
 
       Matrix cBlock = new Matrix(matrixABlock.blockRows, matrixB.cols);
       cBlock.data = C;
@@ -172,10 +172,10 @@ public class MatrixMultiply {
     }
   }
 
-  private static double[] multiply(MatrixBlock matrixABlocks, Matrix matrixB) {
+  private static double[] multiply(DoubleMatrixBlock matrixABlocks, Matrix matrixB) {
     int cDataSize = matrixB.cols * matrixABlocks.blockRows;
     double[] C = new double[cDataSize];
-    Utils.matrixMultiply(matrixABlocks.data, matrixB.data, matrixABlocks.matrixRows, matrixABlocks.matrixCols, matrixB.cols, matrixABlocks.blockRows, C);
+    Utils.matrixMultiply(matrixABlocks.getData(), matrixB.data, matrixABlocks.matrixRows, matrixABlocks.matrixCols, matrixB.cols, matrixABlocks.blockRows, C);
 
     return C;
   }

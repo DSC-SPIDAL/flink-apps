@@ -2,24 +2,21 @@ package edu.iu.dsc.flink.mm;
 
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.*;
-import org.apache.flink.hadoop.shaded.com.google.common.io.LittleEndianDataInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 
-public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
+public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
   private static final long serialVersionUID = 1L;
 
   private static final Logger LOG = LoggerFactory
       .getLogger(MatrixInputFormat.class);
 
-  private boolean isBigEndian = true;
-  private int globalColumnCount;
-  private int globalRowCount;
-
-  private boolean isRead = false;
+  protected boolean isBigEndian = true;
+  protected int globalColumnCount;
+  protected int globalRowCount;
+  protected boolean isRead = false;
 
   @Override
   public FileInputSplit[] createInputSplits(int minNumSplits)
@@ -54,55 +51,10 @@ public class MatrixInputFormat extends FileInputFormat<MatrixBlock> {
   }
 
   @Override
-  public MatrixBlock nextRecord(MatrixBlock block) throws IOException {
-    long splitLength = getSplitLength();
-    int rows = (int) (splitLength / (Double.BYTES * globalColumnCount));
-    int splitIndex = this.currentSplit.getSplitNumber();
-    LOG.info("{} Split Length: {}\n", splitIndex, splitLength);
-    int length = (int)(this.splitLength / Double.BYTES);
-    block = new MatrixBlock();
-
-    block.setStart((int) this.getSplitStart() / (Double.BYTES * globalColumnCount));
-    block.setBlockRows(rows);
-    block.setIndex(splitIndex);
-    block.setMatrixCols(globalColumnCount);
-    block.setMatrixRows(globalRowCount);
-
-    double[] reuse = new double[(int) (getSplitLength() / Double.BYTES)];
-    if (isBigEndian) {
-      DataInputStream dis = new DataInputStream(this.stream);
-      for (int i = 0; i < length; ++i) {
-        reuse[i] = dis.readDouble();
-      }
-    } else {
-      LittleEndianDataInputStream ldis = new LittleEndianDataInputStream(this.stream);
-      for (int i = 0; i < length; ++i) {
-        reuse[i] = ldis.readDouble();
-      }
-    }
-
-    isRead = true;
-    block.setData(reuse);
-    LOG.info("Block print: " + splitIndex + "->" + block.toString());
-    return block;
-  }
-
-  @Override
   public void open(FileInputSplit fileSplit) throws IOException {
     // This uses an input stream, later see how to change to
     // memory maps, will have to change nextRecord() method as well
     super.open(fileSplit);
-  }
-
-  private void throwExceptionIfDistributedFS() {
-    try {
-      if (this.filePath.getFileSystem().isDistributedFS()){
-        throw new IllegalArgumentException("Distributed file systems are not supported in " + this.getClass().getSimpleName());
-      }
-    }
-    catch (IOException e) {
-      e.printStackTrace();
-    }
   }
 
   public boolean isBigEndian() {

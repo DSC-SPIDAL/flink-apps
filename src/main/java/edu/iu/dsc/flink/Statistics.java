@@ -4,7 +4,7 @@ import edu.indiana.soic.spidal.common.DoubleStatistics;
 import org.apache.flink.api.common.typeinfo.BasicArrayTypeInfo;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
-import edu.iu.dsc.flink.io.ShortMatrixInputFormat;
+import edu.iu.dsc.flink.io.SMatrixInputFormat;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ public class Statistics {
         boolean isBigEndian = Boolean.parseBoolean(args[2]);
         boolean divideByShortMax = Boolean.parseBoolean(args[3]);
         double factor = divideByShortMax ? 1.0/Short.MAX_VALUE : 1.0;
-        ShortMatrixInputFormat smif = new ShortMatrixInputFormat();
+        SMatrixInputFormat smif = new SMatrixInputFormat();
         smif.setFilePath(binaryFile);
         smif.setBigEndian(isBigEndian);
         smif.setGlobalColumnCount(globalColCount);

@@ -5,9 +5,7 @@ import java.io.Serializable;
 /**
  * Matrix block represented as an array. The matrix is represented in row major format
  */
-public class MatrixBlock implements Serializable {
-  // the actual data for this block
-  double []data;
+public abstract class MatrixBlock implements Serializable {
   // total number of rows in the matrix
   int matrixRows;
   // total number of cols in the matrxi
@@ -30,10 +28,6 @@ public class MatrixBlock implements Serializable {
     this.matrixRows = matrixRows;
   }
 
-  public void setData(double[] data) {
-    this.data = data;
-  }
-
   public void setMatrixRows(int matrixRows) {
     this.matrixRows = matrixRows;
   }
@@ -54,10 +48,6 @@ public class MatrixBlock implements Serializable {
     this.index = index;
   }
 
-  public double[] getData() {
-    return data;
-  }
-
   public int getMatrixRows() {
     return matrixRows;
   }
@@ -76,17 +66,5 @@ public class MatrixBlock implements Serializable {
 
   public int getIndex() {
     return index;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < blockRows; i++) {
-      for (int j = 0; j < matrixCols; j++) {
-        sb.append(data[i * matrixCols + j]).append(" ");
-      }
-      sb.append("\n");
-    }
-    return sb.toString();
   }
 }

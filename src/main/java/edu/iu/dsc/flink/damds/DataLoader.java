@@ -1,9 +1,7 @@
 package edu.iu.dsc.flink.damds;
 
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
-import edu.iu.dsc.flink.mm.Matrix;
-import edu.iu.dsc.flink.mm.MatrixBlock;
-import edu.iu.dsc.flink.mm.MatrixInputFormat;
+import edu.iu.dsc.flink.mm.*;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 
@@ -19,8 +17,8 @@ public class DataLoader {
     this.config = config;
   }
 
-  public DataSet<MatrixBlock> loadMatrixBlock() {
-    MatrixInputFormat inputFormat = new MatrixInputFormat();
+  public DataSet<ShortMatrixBlock> loadMatrixBlock() {
+    ShortMatrixInputFormat inputFormat = new ShortMatrixInputFormat();
     inputFormat.setBigEndian(true);
     inputFormat.setGlobalColumnCount(config.numberDataPoints);
     inputFormat.setGlobalRowCount(config.numberDataPoints);

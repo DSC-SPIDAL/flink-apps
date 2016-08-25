@@ -14,14 +14,14 @@ import java.io.IOException;
  * Input format class to represent an NxN binary matrix
  * stored as a contiguous Short values, with no meta info
  */
-public class ShortMatrixInputFormat extends FileInputFormat<Short[]> {
+public class SMatrixInputFormat extends FileInputFormat<Short[]> {
     private static final long serialVersionUID = 1L;
 
     /**
      * The log.
      */
     private static final Logger LOG = LoggerFactory
-        .getLogger(ShortMatrixInputFormat.class);
+        .getLogger(SMatrixInputFormat.class);
 
     private boolean isBigEndian = true;
     private int globalColumnCount;

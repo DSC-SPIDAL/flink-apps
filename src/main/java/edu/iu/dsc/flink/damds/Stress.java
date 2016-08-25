@@ -1,21 +1,23 @@
 package edu.iu.dsc.flink.damds;
 
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
+import edu.iu.dsc.flink.mm.MatrixBlock;
+import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import mpi.MPIException;
 
 public class Stress {
   private static double calculateStress(
-      double[] preX, int targetDimension, double tCur, short[] distances,
+      double[] preX, int targetDimension, double tCur, ShortMatrixBlock block,
       WeightsWrap1D weights, double invSumOfSquareDist, double[] internalPartialSigma)
       throws MPIException {
     double stress = 0.0;
-    stress = calculateStressInternal(0, preX, targetDimension, tCur,
-        distances, weights);
+    stress = calculateStressInternal(preX, targetDimension, tCur,
+        block.getData(), weights);
     return stress;
   }
 
-  private static double calculateStressInternal(
-      int threadIdx, double[] preX, int targetDim, double tCur, short[] distances, WeightsWrap1D weights) {
+  private static double calculateStressInternal(double[] preX, int targetDim, double tCur,
+                                                short[] distances, WeightsWrap1D weights) {
 
     double sigma = 0.0;
     double diff = 0.0;
@@ -23,9 +25,8 @@ public class Stress {
       diff = Math.sqrt(2.0 * targetDim) * tCur;
     }
 
-    int threadRowCount = ParallelOps.threadRowCounts[threadIdx];
-    final int globalRowOffset = ParallelOps.threadRowStartOffsets[threadIdx]
-        + ParallelOps.procRowStartOffset;
+    int threadRowCount = 0;
+    final int globalRowOffset = 0;
 
     int globalColCount = ParallelOps.globalColCount;
     int globalRow, procLocalRow;
