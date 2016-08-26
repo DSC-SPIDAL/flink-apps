@@ -12,8 +12,8 @@ import org.apache.flink.util.Collector;
 import java.util.List;
 
 public class Stress {
-  public static void setupWorkFlow(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
-    distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Double>>() {
+  public static DataSet<Double> setupWorkFlow(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
+    DataSet<Double> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Double>>() {
       @Override
       public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
@@ -22,9 +22,9 @@ public class Stress {
         double stress = calculateStress(matrixB.getData(), matrixB.getCols(), 0, shortMatrixBlock, 0, new double[4]);
         return new Tuple2<Integer, Double>(0, stress);
       }
-    }).withBroadcastSet(prexDataSet, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer,Double>, Object>() {
+    }).withBroadcastSet(prexDataSet, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer,Double>, Double>() {
       @Override
-      public void reduce(Iterable<Tuple2<Integer, Double>> iterable, Collector<Object> collector) throws Exception {
+      public void reduce(Iterable<Tuple2<Integer, Double>> iterable, Collector<Double> collector) throws Exception {
         double sum = 0;
         for (Tuple2<Integer, Double> d : iterable) {
           sum += d.f1;
@@ -32,6 +32,7 @@ public class Stress {
         collector.collect(sum);
       }
     });
+    return dataSet;
   }
 
   private static double calculateStress(

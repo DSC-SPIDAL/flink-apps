@@ -21,6 +21,8 @@ public class DAMDSProgram {
             parseCommandLineArguments(args, programOptions);
     CommandLine cmd = parserResult.get();
     DAMDSSection config = readConfiguration(cmd);
+
+
   }
 
   private static DAMDSSection readConfiguration(CommandLine cmd) {
