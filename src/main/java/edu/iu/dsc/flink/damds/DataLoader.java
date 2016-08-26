@@ -5,6 +5,8 @@ import edu.iu.dsc.flink.mm.*;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class DataLoader {
@@ -24,6 +26,28 @@ public class DataLoader {
     inputFormat.setGlobalRowCount(config.numberDataPoints);
 
     return env.readFile(inputFormat, config.distanceMatrixFile);
+  }
+
+  public DataSet<ShortMatrixBlock> loadMatrixBlockTest() {
+    List<ShortMatrixBlock> matrixBlockList = new ArrayList<ShortMatrixBlock>();
+    int blocks = 2;
+    int pointPerBlock = config.numberDataPoints / blocks;
+    for (int j = 0; j < blocks; j++) {
+      ShortMatrixBlock matrixB = new ShortMatrixBlock();
+      matrixB.setIndex(j);
+      matrixB.setMatrixCols(config.numberDataPoints);
+      matrixB.setMatrixRows(pointPerBlock);
+      matrixB.setStart(j * pointPerBlock);
+
+      int matrixBdataSize = matrixB.getMatrixCols() * matrixB.getBlockRows();
+      short[] data = new short[matrixBdataSize];
+      matrixB.setData(data);
+      for (short i = 0; i < matrixBdataSize; i++) {
+        data[i] = i;
+      }
+      matrixBlockList.add(matrixB);
+    }
+    return env.fromCollection(matrixBlockList);
   }
 
   public DataSet<Matrix> loadPointDataSet() {

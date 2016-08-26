@@ -4,6 +4,7 @@ import com.google.common.base.Optional;
 import edu.iu.dsc.flink.damds.configuration.ConfigurationMgr;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import org.apache.commons.cli.*;
+import org.apache.flink.api.java.ExecutionEnvironment;
 
 public class DAMDSProgram {
   public static int BlockSize;
@@ -16,13 +17,16 @@ public class DAMDSProgram {
             Constants.CMD_OPTION_DESCRIPTION_C);
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     Optional<CommandLine> parserResult =
             parseCommandLineArguments(args, programOptions);
     CommandLine cmd = parserResult.get();
     DAMDSSection config = readConfiguration(cmd);
+    final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
-
+    DAMDS damds = new DAMDS(config, env);
+    damds.setupWorkFlow();
+    damds.execute();
   }
 
   private static DAMDSSection readConfiguration(CommandLine cmd) {

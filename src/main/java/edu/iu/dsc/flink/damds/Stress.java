@@ -7,16 +7,12 @@ import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.util.Collector;
 
 import java.util.List;
 
 public class Stress {
   public static DataSet<Double> setupWorkFlow(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
-    String[] args = new String[2];
-    ParameterTool parameters = ParameterTool.fromArgs(args);
-
     DataSet<Double> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Double>>() {
       @Override
       public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {

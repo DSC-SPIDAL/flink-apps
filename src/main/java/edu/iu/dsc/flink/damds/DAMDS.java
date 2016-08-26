@@ -13,24 +13,21 @@ public class DAMDS {
 
   public final ExecutionEnvironment env;
 
-  public DAMDS(DAMDSSection config) {
-    env = ExecutionEnvironment.getExecutionEnvironment();
+  public DAMDS(DAMDSSection config, ExecutionEnvironment env) {
+    this.env = env;
     this.config = config;
     this.loader = new DataLoader(env, config);
   }
 
   public void setupWorkFlow() {
-    DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
+    DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlockTest();
     DataSet<Matrix> prex = loader.loadPointDataSet();
 
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
-
-
+    preStress.writeAsText("out.txt");
   }
 
-  public void execute() {
-    // execute BC
-
-    // now execute CG
+  public void execute() throws Exception {
+    env.execute();
   }
 }
