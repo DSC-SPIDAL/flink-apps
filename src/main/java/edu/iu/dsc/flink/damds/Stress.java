@@ -18,8 +18,9 @@ public class Stress {
       public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         Matrix matrixB = matrix.get(0);
-        // todo
-        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), 0, shortMatrixBlock, 0, new double[4]);
+        // todo ivs tcur
+        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), 0, shortMatrixBlock, 1,
+            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart());
         return new Tuple2<Integer, Double>(0, stress);
       }
     }).withBroadcastSet(prexDataSet, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer,Double>, Double>() {
@@ -37,15 +38,16 @@ public class Stress {
 
   private static double calculateStress(
       double[] preX, int targetDimension, double tCur, ShortMatrixBlock block,
-      double invSumOfSquareDist, double[] internalPartialSigma)
+      double invSumOfSquareDist, int blockRowCount, int rowStartIndex)
       throws MPIException {
-    double stress = 0.0;
+    double stress;
     stress = calculateStressInternal(preX, targetDimension, tCur,
-        block.getData());
-    return stress;
+        block.getData(), blockRowCount, rowStartIndex);
+    return stress * invSumOfSquareDist;
   }
 
-  private static double calculateStressInternal(double[] preX, int targetDim, double tCur, short[] distances) {
+  private static double calculateStressInternal(double[] preX, int targetDim, double tCur,
+                                                short[] distances, int blockRowCount, int rowStartIndex) {
 
     double sigma = 0.0;
     double diff = 0.0;
@@ -53,26 +55,20 @@ public class Stress {
       diff = Math.sqrt(2.0 * targetDim) * tCur;
     }
 
-    // todo
-    int threadRowCount = 0;
-    final int globalRowOffset = 0;
-
-    int globalColCount = ParallelOps.globalColCount;
+    int globalColCount = preX.length;
     int globalRow, procLocalRow;
     double origD, weight, euclideanD;
     double heatD, tmpD;
-    for (int localRow = 0; localRow < threadRowCount; ++localRow){
-      globalRow = localRow + globalRowOffset;
-      procLocalRow = globalRow - ParallelOps.procRowStartOffset;
+    for (int localRow = 0; localRow < blockRowCount; ++localRow){
+      globalRow = localRow + rowStartIndex;
+      procLocalRow = globalRow - rowStartIndex;
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
         origD = distances[procLocalRow * globalColCount + globalCol]
             * DAMDSUtils.INV_SHORT_MAX;
         weight = 1;
-
         if (origD < 0 || weight == 0) {
           continue;
         }
-
         euclideanD = globalRow != globalCol ? DAMDSUtils.calculateEuclideanDist(
             preX, globalRow , globalCol, targetDim) : 0.0;
 
