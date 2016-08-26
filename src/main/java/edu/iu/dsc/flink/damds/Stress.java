@@ -6,6 +6,10 @@ import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import mpi.MPIException;
 
 public class Stress {
+  public static void stressFlink() {
+
+  }
+
   private static double calculateStress(
       double[] preX, int targetDimension, double tCur, ShortMatrixBlock block,
       WeightsWrap1D weights, double invSumOfSquareDist, double[] internalPartialSigma)
