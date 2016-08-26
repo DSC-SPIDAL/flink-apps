@@ -6,6 +6,8 @@ import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 
+import java.io.File;
+
 public class DAMDS {
   private final DataLoader loader;
 
@@ -20,11 +22,16 @@ public class DAMDS {
   }
 
   public void setupWorkFlow() {
+    String filePath = "out.txt";
+    File f = new File(filePath);
+    if (f.exists()) {
+      f.delete();
+    }
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlockTest();
     DataSet<Matrix> prex = loader.loadPointDataSet();
 
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
-    preStress.writeAsText("out.txt");
+    preStress.writeAsText(filePath);
   }
 
   public void execute() throws Exception {

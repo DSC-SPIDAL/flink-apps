@@ -20,7 +20,7 @@ public class Stress {
         Matrix matrixB = matrix.get(0);
         // todo ivs tcur
         double stress = calculateStress(matrixB.getData(), matrixB.getCols(), 0, shortMatrixBlock, 1,
-            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart());
+            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(), shortMatrixBlock.getMatrixCols());
         return new Tuple2<Integer, Double>(0, stress);
       }
     }).withBroadcastSet(prexDataSet, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer,Double>, Double>() {
@@ -38,16 +38,16 @@ public class Stress {
 
   private static double calculateStress(
       double[] preX, int targetDimension, double tCur, ShortMatrixBlock block,
-      double invSumOfSquareDist, int blockRowCount, int rowStartIndex)
+      double invSumOfSquareDist, int blockRowCount, int rowStartIndex, int globalColCount)
       throws MPIException {
     double stress;
     stress = calculateStressInternal(preX, targetDimension, tCur,
-        block.getData(), blockRowCount, rowStartIndex);
+        block.getData(), blockRowCount, rowStartIndex, globalColCount);
     return stress * invSumOfSquareDist;
   }
 
   private static double calculateStressInternal(double[] preX, int targetDim, double tCur,
-                                                short[] distances, int blockRowCount, int rowStartIndex) {
+                                                short[] distances, int blockRowCount, int rowStartIndex, int globalColCount) {
 
     double sigma = 0.0;
     double diff = 0.0;
@@ -55,7 +55,6 @@ public class Stress {
       diff = Math.sqrt(2.0 * targetDim) * tCur;
     }
 
-    int globalColCount = preX.length;
     int globalRow, procLocalRow;
     double origD, weight, euclideanD;
     double heatD, tmpD;
@@ -69,6 +68,7 @@ public class Stress {
         if (origD < 0 || weight == 0) {
           continue;
         }
+        System.out.printf("%d %d \n", globalCol, globalRow);
         euclideanD = globalRow != globalCol ? DAMDSUtils.calculateEuclideanDist(
             preX, globalRow , globalCol, targetDim) : 0.0;
 

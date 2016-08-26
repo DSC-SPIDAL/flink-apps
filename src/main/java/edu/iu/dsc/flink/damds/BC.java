@@ -16,30 +16,30 @@ public class BC {
         0, preX, targetDimension, tCur, distances, weights, blockSize,
         threadPartialBCInternalBofZ[0], threadPartialBCInternalMM[0]);
 
-    if (ParallelOps.worldProcsCount > 1) {
-      // // TODO: 8/24/16
-      //DAMDSUtils.mergePartials(threadPartialBCInternalMM, ParallelOps.mmapXWriteBytes);
-      // Important barrier here - as we need to make sure writes are done to the mmap file
-      // it's sufficient to wait on ParallelOps.mmapProcComm, but it's cleaner for timings
-      // if we wait on the whole world
-      ParallelOps.worldProcsComm.barrier();
-
-      if (ParallelOps.isMmapLead) {
-        ParallelOps.partialXAllGather();
-      }
-      // Each process in a memory group waits here.
-      // It's not necessary to wait for a process
-      // in another memory map group, hence the use of mmapProcComm.
-      // However it's cleaner for any timings to have everyone sync here,
-      // so will use worldProcsComm instead.
-      ParallelOps.worldProcsComm.barrier();
-
-      DAMDSUtils.extractPoints(ParallelOps.fullXBytes,
-          ParallelOps.globalColCount,
-          targetDimension, BC);
-    } else {
-      DAMDSUtils.mergePartials(threadPartialBCInternalMM, BC);
-    }
+//    if (ParallelOps.worldProcsCount > 1) {
+//      // // TODO: 8/24/16
+//      //DAMDSUtils.mergePartials(threadPartialBCInternalMM, ParallelOps.mmapXWriteBytes);
+//      // Important barrier here - as we need to make sure writes are done to the mmap file
+//      // it's sufficient to wait on ParallelOps.mmapProcComm, but it's cleaner for timings
+//      // if we wait on the whole world
+//      ParallelOps.worldProcsComm.barrier();
+//
+//      if (ParallelOps.isMmapLead) {
+//        ParallelOps.partialXAllGather();
+//      }
+//      // Each process in a memory group waits here.
+//      // It's not necessary to wait for a process
+//      // in another memory map group, hence the use of mmapProcComm.
+//      // However it's cleaner for any timings to have everyone sync here,
+//      // so will use worldProcsComm instead.
+//      ParallelOps.worldProcsComm.barrier();
+//
+//      DAMDSUtils.extractPoints(ParallelOps.fullXBytes,
+//          ParallelOps.globalColCount,
+//          targetDimension, BC);
+//    } else {
+//      DAMDSUtils.mergePartials(threadPartialBCInternalMM, BC);
+//    }
   }
 
   private static void calculateBCInternal(
@@ -48,19 +48,19 @@ public class BC {
       double[][] internalBofZ, double[] outMM) {
 
     calculateBofZ(threadIdx, preX, targetDimension, tCur,
-        distances, weights, internalBofZ);
+        distances, weights, internalBofZ, 0, 0);
 
     // Next we can calculate the BofZ * preX.
     MatrixUtils.matrixMultiply(internalBofZ, preX,
-        ParallelOps.threadRowCounts[threadIdx], targetDimension,
-        ParallelOps.globalColCount, blockSize, outMM);
+        0, targetDimension,
+        0, blockSize, outMM);
   }
 
   private static void calculateBofZ(
       int threadIdx, double[] preX, int targetDimension, double tCur, short[] distances, WeightsWrap1D weights,
-      double[][] outBofZ) {
+      double[][] outBofZ, int rowOffSet, int procRowCount) {
 
-    int threadRowCount = ParallelOps.threadRowCounts[threadIdx];
+    int threadRowCount = procRowCount;
 
     double vBlockValue = -1;
 
@@ -74,16 +74,15 @@ public class BC {
     double[] preXGlobalRow;
     double origD, weight, dist;
 
-    final int globalColCount = ParallelOps.globalColCount;
-    final int globalRowOffset = ParallelOps.threadRowStartOffsets[threadIdx]
-        + ParallelOps.procRowStartOffset;
+    final int globalColCount = preX.length;
+    final int globalRowOffset = rowOffSet;
     int globalRow, procLocalRow;
     for (int localRow = 0; localRow < threadRowCount; ++localRow) {
       globalRow = localRow + globalRowOffset;
-      procLocalRow = globalRow - ParallelOps.procRowStartOffset;
+      procLocalRow = globalRow - rowOffSet;
       outBofZLocalRow = outBofZ[localRow];
       outBofZLocalRow[globalRow] = 0;
-      for (int globalCol = 0; globalCol < ParallelOps.globalColCount; globalCol++) {
+      for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
         /*
 				 * B_ij = - w_ij * delta_ij / d_ij(Z), if (d_ij(Z) != 0) 0,
 				 * otherwise v_ij = - w_ij.

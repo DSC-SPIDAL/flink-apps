@@ -22,7 +22,6 @@ public class CG {
 
     // This barrier was necessary for correctness when using
     // a single mmap file
-    ParallelOps.worldProcsComm.barrier();
 
     int iOffset;
     double[] tmpRHSRow;
@@ -48,7 +47,6 @@ public class CG {
       DAMDSUtils.zeroOutArray(threadPartialMM);
       calculateMM(BC, targetDimension, numPoints, weights, blockSize,
           vArray, MMAp, threadPartialMM);
-      ParallelOps.worldProcsComm.barrier();
 
       double alpha = rTr
           / DAMDSUtils.innerProductCalculation(BC, MMAp);
@@ -95,58 +93,50 @@ public class CG {
       int blockSize, double[][] vArray, double[] outMM,
       double[][] internalPartialMM) throws MPIException {
 
-    if (ParallelOps.threadCount > 1) {
-      launchHabaneroApp(
-          () -> forallChunked(
-              0, ParallelOps.threadCount - 1,
-              (threadIdx) -> {
-                calculateMMInternal(threadIdx, x, targetDimension,
-                    numPoints, weights, blockSize,
-                    vArray,
-                    internalPartialMM[threadIdx]);
-              }));
-    }
-    else {
-      calculateMMInternal(0, x, targetDimension, numPoints, weights,
-          blockSize, vArray, internalPartialMM[0]);
-    }
+//    if (ParallelOps.threadCount > 1) {
+//      launchHabaneroApp(
+//          () -> forallChunked(
+//              0, ParallelOps.threadCount - 1,
+//              (threadIdx) -> {
+//                calculateMMInternal(threadIdx, x, targetDimension,
+//                    numPoints, weights, blockSize,
+//                    vArray,
+//                    internalPartialMM[threadIdx]);
+//              }));
+//    }
+//    else {
+//      calculateMMInternal(0, x, targetDimension, numPoints, weights,
+//          blockSize, vArray, internalPartialMM[0]);
+//    }
 
-    if (ParallelOps.worldProcsCount > 1) {
-      // // TODO: 8/24/16
-      // DAMDSUtils.mergePartials(internalPartialMM, ParallelOps.mmapXWriteBytes);
-
-      // Important barrier here - as we need to make sure writes are done to the mmap file
-      // it's sufficient to wait on ParallelOps.mmapProcComm, but it's cleaner for timings
-      // if we wait on the whole world
-      ParallelOps.worldProcsComm.barrier();
-
-      if (ParallelOps.isMmapLead) {
-        ParallelOps.partialXAllGather();
-      }
-      // Each process in a memory group waits here.
-      // It's not necessary to wait for a process
-      // in another memory map group, hence the use of mmapProcComm.
-      // However it's cleaner for any timings to have everyone sync here,
-      // so will use worldProcsComm instead.
-      ParallelOps.worldProcsComm.barrier();
-      DAMDSUtils.extractPoints(ParallelOps.fullXBytes,
-          ParallelOps.globalColCount,
-          targetDimension, outMM);
-    } else {
-      DAMDSUtils.mergePartials(internalPartialMM, outMM);
-    }
+//    if (ParallelOps.worldProcsCount > 1) {
+//      // // TODO: 8/24/16
+//      // DAMDSUtils.mergePartials(internalPartialMM, ParallelOps.mmapXWriteBytes);
+//
+//      // Important barrier here - as we need to make sure writes are done to the mmap file
+//      // it's sufficient to wait on ParallelOps.mmapProcComm, but it's cleaner for timings
+//      // if we wait on the whole world
+//
+//      // Each process in a memory group waits here.
+//      // It's not necessary to wait for a process
+//      // in another memory map group, hence the use of mmapProcComm.
+//      // However it's cleaner for any timings to have everyone sync here,
+//      // so will use worldProcsComm instead.
+//    } else {
+//      DAMDSUtils.mergePartials(internalPartialMM, outMM);
+//    }
   }
 
   private static void calculateMMInternal(
       Integer threadIdx, double[] x, int targetDimension, int numPoints,
       WeightsWrap1D weights, int blockSize, double[][] vArray, double[] outMM) {
 
-    MatrixUtils
-        .matrixMultiplyWithThreadOffset(weights, vArray[threadIdx], x,
-            ParallelOps.threadRowCounts[threadIdx], targetDimension,
-            numPoints, blockSize,
-            ParallelOps.threadRowStartOffsets[threadIdx],
-            ParallelOps.threadRowStartOffsets[threadIdx]
-                + ParallelOps.procRowStartOffset, outMM);
+//    MatrixUtils
+//        .matrixMultiplyWithThreadOffset(weights, vArray[threadIdx], x,
+//            ParallelOps.threadRowCounts[threadIdx], targetDimension,
+//            numPoints, blockSize,
+//            ParallelOps.threadRowStartOffsets[threadIdx],
+//            ParallelOps.threadRowStartOffsets[threadIdx]
+//                + ParallelOps.procRowStartOffset, outMM);
   }
 }

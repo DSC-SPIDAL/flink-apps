@@ -38,6 +38,7 @@ public class DataLoader {
       matrixB.setMatrixCols(config.numberDataPoints);
       matrixB.setMatrixRows(pointPerBlock);
       matrixB.setStart(j * pointPerBlock);
+      matrixB.setBlockRows(pointPerBlock);
 
       int matrixBdataSize = matrixB.getMatrixCols() * matrixB.getBlockRows();
       short[] data = new short[matrixBdataSize];
