@@ -5,6 +5,8 @@ import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import mpi.MPIException;
 
 public class BC {
+
+
   public static void calculateBC(
       double[] preX, int targetDimension, double tCur, short[] distances,
       WeightsWrap1D weights, int blockSize, double[] BC,

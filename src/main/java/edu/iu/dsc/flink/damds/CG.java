@@ -5,8 +5,6 @@ import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import mpi.MPIException;
 
-import static edu.rice.hj.Module0.launchHabaneroApp;
-import static edu.rice.hj.Module1.forallChunked;
 
 public class CG {
   private static void calculateConjugateGradient(
