@@ -1,8 +1,7 @@
 package edu.iu.dsc.flink.mm;
 
-import org.apache.commons.collections.map.HashedMap;
-
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -15,7 +14,7 @@ public class Matrix implements Serializable {
   // cols should be small
   int cols;
 
-  Map<String, Object> properties = new HashedMap();
+  private Map<String, Object> properties = new HashMap<String, Object>();
 
   boolean columnMajor = true;
 
