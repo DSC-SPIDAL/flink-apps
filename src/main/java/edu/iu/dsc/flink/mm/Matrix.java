@@ -1,6 +1,9 @@
 package edu.iu.dsc.flink.mm;
 
+import org.apache.commons.collections.map.HashedMap;
+
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * A matrix represented as an array. The matrix is represented in the column major format.
@@ -11,6 +14,8 @@ public class Matrix implements Serializable {
   int rows;
   // cols should be small
   int cols;
+
+  Map<String, Object> properties = new HashedMap();
 
   boolean columnMajor = true;
 
@@ -66,6 +71,18 @@ public class Matrix implements Serializable {
 
   public void setCols(int cols) {
     this.cols = cols;
+  }
+
+  public void addProperty(String prop, Object val) {
+    properties.put(prop, val);
+  }
+
+  public Map<String, Object> getProperties() {
+    return properties;
+  }
+
+  public void setProperties(Map<String, Object> properties) {
+    this.properties = properties;
   }
 
   @Override

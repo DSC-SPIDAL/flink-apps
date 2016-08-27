@@ -51,11 +51,13 @@ public class DataLoader {
     return env.fromCollection(matrixBlockList);
   }
 
-  public DataSet<Matrix> loadPointDataSet() {
+  public DataSet<Matrix> loadPointDataSet(double tCur, double invs) {
     Matrix matrixB = new Matrix(config.numberDataPoints, config.targetDimension);
     int matrixBdataSize = matrixB.getCols() * matrixB.getRows();
     double[] data = new double[matrixBdataSize];
     matrixB.setData(data);
+    matrixB.getProperties().put("tCur", tCur);
+    matrixB.getProperties().put("invs", invs);
     Random random = new Random();
     for (int i = 0; i < matrixBdataSize; i++) {
       data[i] = random.nextDouble();

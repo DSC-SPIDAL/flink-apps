@@ -18,8 +18,10 @@ public class Stress {
       public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         Matrix matrixB = matrix.get(0);
+        double tCur = (double) matrixB.getProperties().get("tCur");
+        double invs = (double) matrixB.getProperties().get("invs");
         // todo ivs tcur
-        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), 0, shortMatrixBlock, 1,
+        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), tCur, shortMatrixBlock, invs,
             shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(), shortMatrixBlock.getMatrixCols());
         return new Tuple2<Integer, Double>(0, stress);
       }
