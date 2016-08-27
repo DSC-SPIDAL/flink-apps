@@ -44,7 +44,7 @@ public class DataLoader {
       short[] data = new short[matrixBdataSize];
       matrixB.setData(data);
       for (short i = 0; i < matrixBdataSize; i++) {
-        data[i] = i;
+        data[i] = (short) (i * 100);
       }
       matrixBlockList.add(matrixB);
     }

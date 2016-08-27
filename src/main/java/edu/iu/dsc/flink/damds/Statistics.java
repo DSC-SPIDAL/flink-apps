@@ -12,8 +12,8 @@ public class Statistics {
     DataSet<DoubleStatistics> stats = matrixBlockDataSet.flatMap(new RichFlatMapFunction<ShortMatrixBlock, DoubleStatistics>() {
       @Override
       public void flatMap(ShortMatrixBlock shortMatrixBlock, Collector<DoubleStatistics> collector) throws Exception {
-        DoubleStatistics doubleStatistics = calculateStatisticsInternal(shortMatrixBlock.getData(), shortMatrixBlock.getBlockRows(),
-            shortMatrixBlock.getStart(), shortMatrixBlock.getMatrixCols());
+        DoubleStatistics doubleStatistics = calculateStatisticsInternal(shortMatrixBlock.getData(),
+            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getMatrixCols());
         collector.collect(doubleStatistics);
       }
     }).reduce(new ReduceFunction<DoubleStatistics>() {
@@ -27,13 +27,14 @@ public class Statistics {
   }
 
   private static DoubleStatistics calculateStatisticsInternal(
-      short[] distances, int blockRowCount, int rowStartIndex, int globalColCount) {
+      short[] distances, int blockRowCount, int globalColCount) {
     DoubleStatistics stat = new DoubleStatistics();
     int procLocalRow;
     double origD, weight;
     for (int localRow = 0; localRow < blockRowCount; ++localRow){
-      procLocalRow = localRow + rowStartIndex;
+      procLocalRow = localRow;
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
+        System.out.printf("**** block=%d global=%d localRow=%d index=%d\n", blockRowCount, globalColCount, procLocalRow, (procLocalRow * globalColCount + globalCol));
         origD = distances[procLocalRow * globalColCount + globalCol] * DAMDSUtils.INV_SHORT_MAX;
         if (origD < 0) {
           // Missing distance
