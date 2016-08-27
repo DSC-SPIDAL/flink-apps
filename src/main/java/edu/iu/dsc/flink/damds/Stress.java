@@ -49,7 +49,8 @@ public class Stress {
   }
 
   private static double calculateStressInternal(double[] preX, int targetDim, double tCur,
-                                                short[] distances, int blockRowCount, int rowStartIndex, int globalColCount) {
+                                                short[] distances, int blockRowCount,
+                                                int rowStartIndex, int globalColCount) {
 
     double sigma = 0.0;
     double diff = 0.0;
