@@ -25,11 +25,11 @@ public class BC {
         for (int i = 0; i < sMB.getBlockRows(); i++) {
           internalBofZ[i] = new double[sMB.getMatrixCols()];
         }
-        double [] threadPartialBCInternalMM = new double[sMB.getMatrixCols() * sMB.getBlockRows()];
+        double [] threadPartialBCInternalMM = new double[prexMatrix.getCols() * sMB.getBlockRows()];
         calculateBCInternal(prexMatrix.getData(), prexMatrix.getCols(), tCur, sMB.getData(), sMB.getBlockRows(),
             internalBofZ, threadPartialBCInternalMM, sMB.getBlockRows(), sMB.getStart(), sMB.getMatrixCols());
 
-        Matrix retMatrix = new Matrix(threadPartialBCInternalMM, sMB.getBlockRows(), sMB.getMatrixCols(), false);
+        Matrix retMatrix = new Matrix(threadPartialBCInternalMM, sMB.getBlockRows(), prexMatrix.getCols(), false);
         return new Tuple2<Integer, Matrix>(sMB.getIndex(), retMatrix);
       }
     }).withBroadcastSet(prex, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
