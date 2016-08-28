@@ -7,15 +7,15 @@ import java.io.Serializable;
  */
 public abstract class MatrixBlock implements Serializable {
   // total number of rows in the matrix
-  int matrixRows;
+  protected int matrixRows;
   // total number of cols in the matrxi
-  int matrixCols;
+  protected int matrixCols;
   // no of rows in this block
-  int blockRows;
+  protected int blockRows;
   // start of the block
-  int start;
+  protected int start;
   // block index starting from 0
-  int index;
+  protected int index;
 
   public MatrixBlock() {
   }

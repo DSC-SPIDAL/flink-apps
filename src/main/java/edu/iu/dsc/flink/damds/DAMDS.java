@@ -31,6 +31,8 @@ public class DAMDS {
     DataSet<Matrix> prex = loader.loadPointDataSet(1, 1);
     prex = joinStats(prex, stats);
 
+    DataSet<Matrix> bc = BC.calculate(prex, distances);
+    bc.writeAsText("bc.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
 
     preStress.writeAsText(filePath, FileSystem.WriteMode.OVERWRITE);
