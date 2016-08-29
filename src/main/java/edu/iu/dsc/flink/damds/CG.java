@@ -7,13 +7,17 @@ import mpi.MPIException;
 
 
 public class CG {
+  private static void calculateConjugateGradient() {
+
+  }
+
   private static void calculateConjugateGradient(
       double[] preX, int targetDimension, int numPoints, double[] BC, int cgIter, double cgThreshold,
       RefObj<Integer> outCgCount, RefObj<Integer> outRealCGIterations,
-      WeightsWrap1D weights, int blockSize, double[][] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
+      int blockSize, double[][] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
 
       throws MPIException {
-
+    WeightsWrap1D weights = new WeightsWrap1D(null, null, false, 1);
     DAMDSUtils.zeroOutArray(threadPartialMM);
     calculateMM(preX, targetDimension, numPoints, weights, blockSize,
         vArray, MMr, threadPartialMM);
@@ -126,15 +130,14 @@ public class CG {
   }
 
   private static void calculateMMInternal(
-      Integer threadIdx, double[] x, int targetDimension, int numPoints,
-      WeightsWrap1D weights, int blockSize, double[][] vArray, double[] outMM) {
+      double[] x, int targetDimension, int numPoints,
+      WeightsWrap1D weights, int blockSize, double[] vArray, double[] outMM, int rowCount, int rowStartOffset) {
 
-//    MatrixUtils
-//        .matrixMultiplyWithThreadOffset(weights, vArray[threadIdx], x,
-//            ParallelOps.threadRowCounts[threadIdx], targetDimension,
-//            numPoints, blockSize,
-//            ParallelOps.threadRowStartOffsets[threadIdx],
-//            ParallelOps.threadRowStartOffsets[threadIdx]
-//                + ParallelOps.procRowStartOffset, outMM);
+    MatrixUtils
+        .matrixMultiplyWithThreadOffset(weights, vArray, x,
+            rowCount, targetDimension,
+            numPoints, blockSize,
+            rowStartOffset,
+            rowStartOffset, outMM);
   }
 }
