@@ -3,19 +3,22 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
+import edu.iu.dsc.flink.mm.Matrix;
 import mpi.MPIException;
+import org.apache.flink.api.java.DataSet;
 
 
 public class CG {
-  private static void calculateConjugateGradient() {
+  public static int blockSize = 512;
+
+  private static DataSet<Matrix> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC, int cgIter) {
 
   }
 
   private static void calculateConjugateGradient(
       double[] preX, int targetDimension, int numPoints, double[] BC, int cgIter, double cgThreshold,
       RefObj<Integer> outCgCount, RefObj<Integer> outRealCGIterations,
-      int blockSize, double[][] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
-
+      double[][] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
       throws MPIException {
     WeightsWrap1D weights = new WeightsWrap1D(null, null, false, 1);
     DAMDSUtils.zeroOutArray(threadPartialMM);
