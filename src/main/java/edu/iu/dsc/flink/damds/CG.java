@@ -5,26 +5,76 @@ import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import mpi.MPIException;
+import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.util.Collector;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 
 public class CG {
-  private static void calculateConjugateGradient(DataSet<Integer> parallel, DataSet<Matrix> preX, DataSet<Matrix> BC) {
-    parallel.map(new RichMapFunction<Integer, Matrix>() {
-      @Override
-      public Matrix map(Integer integer) throws Exception {
-        List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
-        List<Matrix> BC = getRuntimeContext().getBroadcastVariable("bc");
+  private static void calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC, DataSet<Matrix> vArray, Configuration parameters) {
 
-        return null;
-      }
-    }).withBroadcastSet(preX, "prex").withBroadcastSet(BC, "bc");
   }
 
-  private static DataSet<Matrix> calculateMM(Matrix A, Matrix B) {
-    return null;
+  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Matrix> B, Configuration parameters) {
+    DataSet<Matrix> out = A.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
+      int targetDimension;
+      int globalCols;
+
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        this.targetDimension = parameters.getInteger(Constants.TARGET_DIMENSION, 3);
+        this.globalCols = parameters.getInteger(Constants.GLOBAL_COLS, 0);
+      }
+
+      @Override
+      public Tuple2<Integer, Matrix> map(Matrix matrx) throws Exception {
+        List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
+        Matrix preXM = prex.get(0);
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
+        double []outMM = new double[globalCols * targetDimension];
+
+        // todo figure out the details of the calculation
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), 0);
+        Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
+        return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
+      }
+    }).withBroadcastSet(B, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+      @Override
+      public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
+        TreeSet<Tuple2<Integer, Matrix>> set = new TreeSet<Tuple2<Integer, Matrix>>(new Comparator<Tuple2<Integer, Matrix>>() {
+          @Override
+          public int compare(Tuple2<Integer, Matrix> o1, Tuple2<Integer, Matrix> o2) {
+            return o1.f0.compareTo(o2.f0);
+          }
+        });
+
+        // gather the reduce
+        int rows = 0;
+        int cols = 0;
+        for (Tuple2<Integer, Matrix> t : iterable) {
+          set.add(t);
+          rows += t.f1.getRows();
+          cols = t.f1.getCols();
+        }
+        int cellCount = 0;
+        double[] vals = new double[rows * cols];
+        for (Tuple2<Integer, Matrix> t : set) {
+          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
+          System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
+          cellCount += t.f1.getData().length;
+        }
+        Matrix retMatrix = new Matrix(vals, rows, cols, false);
+        collector.collect(retMatrix);
+      }
+    });
+    return out;
   }
 
   private static void calculateConjugateGradient(

@@ -50,6 +50,14 @@ public class Matrix implements Serializable {
     this.columnMajor = columnMajor;
   }
 
+  public int getIndex() {
+    return index;
+  }
+
+  public void setIndex(int index) {
+    this.index = index;
+  }
+
   public boolean isColumnMajor() {
     return columnMajor;
   }
