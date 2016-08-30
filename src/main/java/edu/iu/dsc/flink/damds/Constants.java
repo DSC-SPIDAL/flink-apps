@@ -1,6 +1,11 @@
 package edu.iu.dsc.flink.damds;
 
 public class Constants {
+  public static final String TARGET_DIMENSION = "targetDimension";
+  public static final String GLOBAL_COLS = "globalCols";
+  public static final String GLOBAL_ROWS = "globalRows";
+  public static final String ALPHA = "alpha";
+
   static final String PROGRAM_NAME = "DAMDS";
 
   static final char CMD_OPTION_SHORT_C = 'c';

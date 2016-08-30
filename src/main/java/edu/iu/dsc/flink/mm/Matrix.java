@@ -14,11 +14,21 @@ public class Matrix implements Serializable {
   // cols should be small
   int cols;
 
+  int index;
+
   private Map<String, Object> properties = new HashMap<String, Object>();
 
   boolean columnMajor = true;
 
   public Matrix() {
+  }
+
+  public Matrix(double[] data, int rows, int cols, int index, boolean columnMajor) {
+    this.data = data;
+    this.rows = rows;
+    this.cols = cols;
+    this.index = index;
+    this.columnMajor = columnMajor;
   }
 
   public Matrix(double[] data, int rows, int cols, boolean columnMajor) {

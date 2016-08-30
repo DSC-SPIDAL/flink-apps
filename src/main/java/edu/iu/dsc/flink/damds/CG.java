@@ -24,13 +24,13 @@ public class CG {
   }
 
   private static DataSet<Matrix> calculateMM(Matrix A, Matrix B) {
-
+    return null;
   }
 
   private static void calculateConjugateGradient(
       double[] preX, int targetDimension, int numPoints, double[] BC, int cgIter, double cgThreshold,
       RefObj<Integer> outCgCount, RefObj<Integer> outRealCGIterations,
-      int blockSize, double[][] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
+      int blockSize, double[] vArray, double[] MMr, double[] MMAp, double[][] threadPartialMM)
 
       throws MPIException {
     WeightsWrap1D weights = new WeightsWrap1D(null, null, false, 1);

@@ -27,6 +27,10 @@ public class DAMDSUtils {
     }
   }
 
+  public static void zeroOutArray(double[] a){
+    Arrays.fill(a, 0.0d);
+  }
+
   public static void zeroOutArray(double[][] a){
     Arrays.fill(a[0], 0.0d);
   }

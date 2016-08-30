@@ -1,5 +1,6 @@
 package edu.iu.dsc.flink.damds.configuration;
 
+import edu.iu.dsc.flink.damds.Constants;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import mpi.MPIException;
 import org.apache.flink.configuration.Configuration;
@@ -20,13 +21,12 @@ public class ConfigurationMgr {
     return new ConfigurationMgr(configurationFilePath);
   }
 
-  public static Configuration getConfiguration(DAMDSSection config)
-      throws IOException, MPIException {
+  public static Configuration getConfiguration(DAMDSSection config) {
     Configuration configuration = new Configuration();
-    configuration.setInteger("globalRows", config.numberDataPoints);
-    configuration.setInteger("globalCols", config.numberDataPoints);
-    configuration.setInteger("targetDimention", config.targetDimension);
-    configuration.setDouble("alpha", config.alpha);
+    configuration.setInteger(Constants.GLOBAL_ROWS, config.numberDataPoints);
+    configuration.setInteger(Constants.GLOBAL_COLS, config.numberDataPoints);
+    configuration.setInteger(Constants.TARGET_DIMENSION, config.targetDimension);
+    configuration.setDouble(Constants.ALPHA, config.alpha);
     return configuration;
   }
 }
