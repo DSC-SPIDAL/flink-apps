@@ -20,7 +20,6 @@ public class Stress {
         Matrix matrixB = matrix.get(0);
         double tCur = (double) matrixB.getProperties().get("tCur");
         double invs = (double) matrixB.getProperties().get("invs");
-        // todo ivs tcur
         double stress = calculateStress(matrixB.getData(), matrixB.getCols(), tCur, shortMatrixBlock, invs,
             shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(), shortMatrixBlock.getMatrixCols());
         return new Tuple2<Integer, Double>(0, stress);
@@ -68,7 +67,7 @@ public class Stress {
         origD = distances[procLocalRow * globalColCount + globalCol]
             * DAMDSUtils.INV_SHORT_MAX;
         weight = 1;
-        if (origD < 0 || weight == 0) {
+        if (origD < 0) {
           continue;
         }
         //System.out.printf("%d %d \n", globalCol, globalRow);

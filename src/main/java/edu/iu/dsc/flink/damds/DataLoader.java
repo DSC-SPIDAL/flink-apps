@@ -64,4 +64,12 @@ public class DataLoader {
     }
     return env.fromElements(matrixB);
   }
+
+  public DataSet<Integer> loadParallelArray(int parallel) {
+    List<Integer> array = new ArrayList<>();
+    for (int i = 0; i < parallel; i++) {
+      array.add(i);
+    }
+    return env.fromCollection(array);
+  }
 }
