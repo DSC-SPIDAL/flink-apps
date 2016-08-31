@@ -3,11 +3,17 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
+import edu.iu.dsc.flink.kmeans.Centroid;
+import edu.iu.dsc.flink.mm.DoubleMatrix2D;
+import edu.iu.dsc.flink.mm.DoubleMatrixBlock;
 import edu.iu.dsc.flink.mm.Matrix;
+import mpi.DoubleInt;
 import mpi.MPIException;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
+import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Collector;
@@ -18,7 +24,7 @@ import java.util.TreeSet;
 
 public class CG {
   public static void calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
-                                                 DataSet<Matrix> vArray, Configuration parameters) {
+                                                 DataSet<Matrix> vArray, Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
     DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
@@ -42,7 +48,132 @@ public class CG {
       }
     }).withBroadcastSet(BC, "bc");
 
+    DataSet<Double> rTr = innerProductCalculation(newMMr);
 
+    // now loop
+    IterativeDataSet<Matrix> loop = BC.iterate(cgIter);
+    DataSet<Matrix> MMap = calculateMM(vArray, BC, parameters);
+    DataSet<Double> alpha = innerProductCalculation(BC, MMap, rTr);
+
+    DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix matrix) throws Exception {
+        List<Matrix> bcMatrixList = getRuntimeContext().getBroadcastVariable("bc");
+        List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
+        Matrix bcMatrix = bcMatrixList.get(0);
+        double alpha = alphaList.get(0);
+        double []prex = matrix.getData();
+        double []bc = bcMatrix.getData();
+        //update Xi to Xi+1
+        int iOffset;
+        for(int i = 0; i < matrix.getRows(); ++i) {
+          iOffset = i * matrix.getCols();
+          for (int j = 0; j < matrix.getCols(); ++j) {
+            prex[iOffset+j] += alpha * bc[iOffset+j];
+          }
+        }
+        return matrix;
+      }
+    }).withBroadcastSet(BC, "bc").withBroadcastSet(alpha, "alpha");
+
+    // update MMr
+    newMMr = MMap.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix matrix) throws Exception {
+        List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
+        List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
+        double alpha = alphaList.get(0);
+        double []mmap = matrix.getData();
+        Matrix mmrMatrix = mmrMatrixList.get(0);
+        double []mmr = mmrMatrix.getData();
+
+        int iOffset;
+        for(int i = 0; i < matrix.getRows(); ++i) {
+          iOffset = i * matrix.getCols();
+          for (int j = 0; j < matrix.getCols(); ++j) {
+            mmr[iOffset+j] += alpha * mmap[iOffset+j];
+          }
+        }
+        return mmrMatrix;
+      }
+    }).withBroadcastSet(newMMr, "mmr");
+
+    DataSet<Double> rtr1 = innerProductCalculation(newMMr);
+    DataSet<Double> beta = devide(rtr1, rTr);
+
+    newBC = BC.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix matrix) throws Exception {
+        List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
+        List<Double> betaList = getRuntimeContext().getBroadcastVariable("beta");
+        double beta = betaList.get(0);
+        double []bc = matrix.getData();
+        Matrix mmrMatrix = mmrMatrixList.get(0);
+        double []mmr = mmrMatrix.getData();
+
+        int iOffset;
+        for(int i = 0; i < matrix.getRows(); ++i) {
+          iOffset = i * matrix.getCols();
+          for (int j = 0; j < matrix.getCols(); ++j) {
+            bc[iOffset+j] = mmr[iOffset+j] + beta * bc[iOffset+j];
+          }
+        }
+        return matrix;
+      }
+    }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
+    // done with BC iterations
+    loop.closeWith(newBC);
+  }
+
+  public static DataSet<Double> devide(DataSet<Double> a, DataSet<Double> b) {
+    DataSet<Double> ab = a.map(new RichMapFunction<Double, Double>() {
+      @Override
+      public Double map(Double aDouble) throws Exception {
+        List<Double> bList = getRuntimeContext().getBroadcastVariable("b");
+        double b = bList.get(0);
+        return aDouble / b;
+      }
+    }).withBroadcastSet(b, "b");
+    return ab;
+  }
+
+  public static DataSet<Double> innerProductCalculation(DataSet<Matrix> aM, DataSet<Matrix> bM, DataSet<Double> rTr) {
+    DataSet<Double> d = aM.map(new RichMapFunction<Matrix, Double>() {
+      @Override
+      public Double map(Matrix matrix) throws Exception {
+        double []a = matrix.getData();
+        List<Matrix> bMatrixList = getRuntimeContext().getBroadcastVariable("b");
+        List<Double> rtrData = getRuntimeContext().getBroadcastVariable("rtr");
+        double rtr = rtrData.get(0);
+        Matrix bMatrix = bMatrixList.get(0);
+        double []b = bMatrix.getData();
+        double sum = 0;
+        if (a.length > 0) {
+          for (int i = 0; i < a.length; ++i) {
+            sum += a[i] * b[i];
+          }
+        }
+        return rtr / sum;
+      }
+    }).withBroadcastSet(bM, "b").withBroadcastSet(rTr, "rtr");
+    return d;
+  }
+
+  private static DataSet<Double>  innerProductCalculation(DataSet<Matrix> m) {
+    DataSet<Double> p = m.map(new MapFunction<Matrix, Double>() {
+      @Override
+      public Double map(Matrix matrix) throws Exception {
+        double []a = matrix.getData();
+        double sum = 0.0;
+        if (a.length > 0) {
+          for (double anA : a) {
+            sum += anA * anA;
+          }
+        }
+        return sum;
+      }
+    });
+    return p;
   }
 
   private static void calculateMMRBC(Matrix MMR, Matrix BCM) {
