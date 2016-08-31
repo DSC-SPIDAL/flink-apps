@@ -50,7 +50,7 @@ public class DAMDS {
     IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     // now inside this stress loop
-    DataSet<Double> diffStress = env.fromElements(new Double(config.threshold + 1.0));
+    DataSet<Double> diffStress = env.fromElements(config.threshold + 1.0);
 
     IterativeDataSet<Double> stressLoop = diffStress.iterate(config.maxtemploops);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
