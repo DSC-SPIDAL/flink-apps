@@ -3,11 +3,7 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
-import edu.iu.dsc.flink.kmeans.Centroid;
-import edu.iu.dsc.flink.mm.DoubleMatrix2D;
-import edu.iu.dsc.flink.mm.DoubleMatrixBlock;
 import edu.iu.dsc.flink.mm.Matrix;
-import mpi.DoubleInt;
 import mpi.MPIException;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
@@ -51,9 +47,9 @@ public class CG {
     DataSet<Double> rTr = innerProductCalculation(newMMr);
 
     // now loop
-    IterativeDataSet<Matrix> loop = BC.iterate(cgIter);
-    DataSet<Matrix> MMap = calculateMM(vArray, BC, parameters);
-    DataSet<Double> alpha = innerProductCalculation(BC, MMap, rTr);
+    IterativeDataSet<Matrix> loop = newBC.iterate(cgIter);
+    DataSet<Matrix> MMap = calculateMM(vArray, newBC, parameters);
+    DataSet<Double> alpha = innerProductCalculation(newBC, MMap, rTr);
 
     DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
