@@ -17,8 +17,46 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class CG {
-  private static void calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC, DataSet<Matrix> vArray, Configuration parameters) {
+  public static void calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
+                                                 DataSet<Matrix> vArray, Configuration parameters) {
+    DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
+    DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix MMR) throws Exception {
+        List<Matrix> bcMatrix = getRuntimeContext().getBroadcastVariable("bc");
+        Matrix BCM = bcMatrix.get(0);
 
+        calculateMMRBC(MMR, BCM);
+        return BCM;
+      }
+    }).withBroadcastSet(BC, "bc");
+
+    DataSet<Matrix> newMMr = MMr.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix MMR) throws Exception {
+        List<Matrix> bcMatrix = getRuntimeContext().getBroadcastVariable("bc");
+        Matrix BCM = bcMatrix.get(0);
+
+        calculateMMRBC(MMR, BCM);
+        return MMR;
+      }
+    }).withBroadcastSet(BC, "bc");
+
+
+  }
+
+  private static void calculateMMRBC(Matrix MMR, Matrix BCM) {
+    double []bcData = BCM.getData();
+    double []mmrData = MMR.getData();
+
+    int iOffset;
+    for(int i = 0; i < MMR.getRows(); ++i) {
+      iOffset = i * MMR.getCols();
+      for (int j = 0; j < MMR.getCols(); ++j) {
+        bcData[iOffset+j] -= mmrData[iOffset+j];
+        mmrData[iOffset+j] = bcData[iOffset+j];
+      }
+    }
   }
 
   private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Matrix> B, Configuration parameters) {
@@ -160,7 +198,7 @@ public class CG {
       double[] x, int targetDimension, int numPoints, WeightsWrap1D weights,
       int blockSize, double[] vArray, double[] outMM,
       double[][] internalPartialMM) throws MPIException {
-     
+
   }
 
   private static void calculateMMInternal(
