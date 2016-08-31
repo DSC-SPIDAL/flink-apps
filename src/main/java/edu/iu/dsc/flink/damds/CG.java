@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class CG {
-  public static void calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
+  public static DataSet<Matrix> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
                                                  DataSet<Matrix> vArray, Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
     DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
@@ -119,6 +119,8 @@ public class CG {
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
     // done with BC iterations
     loop.closeWith(newBC);
+
+    return newPrex;
   }
 
   public static DataSet<Double> devide(DataSet<Double> a, DataSet<Double> b) {
