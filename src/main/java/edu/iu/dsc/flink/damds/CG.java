@@ -91,7 +91,7 @@ public class CG {
         }
         return mmrMatrix;
       }
-    }).withBroadcastSet(newMMr, "mmr");
+    }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(alpha, "alpha");
 
     DataSet<Double> rtr1 = innerProductCalculation(newMMr);
     DataSet<Double> beta = devide(rtr1, rTr);
