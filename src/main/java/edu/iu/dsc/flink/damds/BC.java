@@ -18,6 +18,7 @@ public class BC {
     DataSet<Matrix> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Matrix>>() {
       @Override
       public Tuple2<Integer, Matrix> map(ShortMatrixBlock sMB) throws Exception {
+        System.out.println("BC calculate ************");
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         Matrix prexMatrix = matrix.get(0);
         double tCur = (double) prexMatrix.getProperties().get("tCur");
