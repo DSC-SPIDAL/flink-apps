@@ -1,10 +1,8 @@
 package edu.iu.dsc.flink.damds;
 
 import edu.indiana.soic.spidal.common.MatrixUtils;
-import edu.indiana.soic.spidal.common.RefObj;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
-import mpi.MPIException;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -49,7 +47,7 @@ public class CG {
 
     // now loop
     IterativeDataSet<Matrix> loop = newBC.iterate(cgIter);
-    DataSet<Matrix> MMap = calculateMM(vArray, newBC, parameters);
+    DataSet<Matrix> MMap = calculateMM(newBC, vArray, parameters);
     DataSet<Double> alpha = innerProductCalculation(newBC, MMap, rTr);
 
     DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
@@ -189,8 +187,8 @@ public class CG {
     }
   }
 
-  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Matrix> B, Configuration parameters) {
-    DataSet<Matrix> out = A.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
+  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Matrix> vArray, Configuration parameters) {
+    DataSet<Matrix> out = vArray.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
       int targetDimension;
       int globalCols;
 
@@ -206,14 +204,14 @@ public class CG {
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
-        double []outMM = new double[globalCols * targetDimension];
+        double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
         calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), 0);
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }
-    }).withBroadcastSet(B, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
       @Override
       public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
         TreeSet<Tuple2<Integer, Matrix>> set = new TreeSet<Tuple2<Integer, Matrix>>(new Comparator<Tuple2<Integer, Matrix>>() {
