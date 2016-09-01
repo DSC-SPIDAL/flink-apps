@@ -27,6 +27,7 @@ public class ConfigurationMgr {
     configuration.setInteger(Constants.GLOBAL_COLS, config.numberDataPoints);
     configuration.setInteger(Constants.TARGET_DIMENSION, config.targetDimension);
     configuration.setDouble(Constants.ALPHA, config.alpha);
+    configuration.setDouble(Constants.THRESHOLD, config.threshold);
     return configuration;
   }
 }

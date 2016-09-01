@@ -1,10 +1,13 @@
 package edu.iu.dsc.flink.damds;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.indiana.soic.spidal.common.DoubleStatistics;
 import edu.iu.dsc.flink.damds.configuration.ConfigurationMgr;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
+import edu.iu.dsc.flink.mm.DoubleMatrixBlock;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
+import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -28,7 +31,6 @@ public class DAMDS {
   }
 
   public void setupWorkFlow() {
-    String filePath = "out.txt";
     Configuration parameters = ConfigurationMgr.getConfiguration(config);
 
     // read the distances partitioned
@@ -41,30 +43,46 @@ public class DAMDS {
     DataSet<Matrix> vArray = VArray.generateVArray(distances, parameters);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
-    // calculate the initial stress
 
     // now create tCur, this will be our loop variable
     DataSet<Double> tCur = createTCur(stats, parameters);
 
     // we need to register a filter to terminate the loop
     IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
+    IterativeDataSet<Matrix> stressLoop = prex.iterate(config.maxtemploops);
+    // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
-    // now inside this stress loop
-    DataSet<Double> diffStress = env.fromElements(config.threshold + 1.0);
-
-    IterativeDataSet<Double> stressLoop = diffStress.iterate(config.maxtemploops);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
-
     // now calculate stress
-    diffStress = Stress.setupWorkFlow(distances, newPrex);
-    stressLoop.closeWith(diffStress);
+    DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
+    DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
+    stressLoop.closeWith(newPrex, terminate);
+
+
     // todo close temperature loop
     tempLoop.closeWith(tCur);
+    preStress.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
+  }
 
-    bc.writeAsText("bc.txt", FileSystem.WriteMode.OVERWRITE);
-    vArray.writeAsText("vArray.txt", FileSystem.WriteMode.OVERWRITE);
-    preStress.writeAsText(filePath, FileSystem.WriteMode.OVERWRITE);
+  public DataSet<Boolean> streeDiff(DataSet<Double> preStree, DataSet<Double> postStress, Configuration parameters) {
+    DataSet<Boolean> thresh = preStree.map(new RichMapFunction<Double, Boolean>() {
+      double threshold;
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        threshold = parameters.getDouble(Constants.THRESHOLD, 0.000001);
+      }
+
+      @Override
+      public Boolean map(Double aDouble) throws Exception {
+        List<Double> postStressList = getRuntimeContext().getBroadcastVariable("stat");
+        double post = postStressList.get(0);
+        double diffStress = aDouble - post;
+        return diffStress >= threshold;
+      }
+    }).withBroadcastSet(postStress, "s").withParameters(parameters);
+    return thresh;
   }
 
   public DataSet<Matrix> joinStats(DataSet<Matrix> prex, DataSet<DoubleStatistics> statisticsDataSet) {

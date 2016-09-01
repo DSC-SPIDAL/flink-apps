@@ -5,6 +5,7 @@ public class Constants {
   public static final String GLOBAL_COLS = "globalCols";
   public static final String GLOBAL_ROWS = "globalRows";
   public static final String ALPHA = "alpha";
+  public static final String THRESHOLD = "threshold";
 
   static final String PROGRAM_NAME = "DAMDS";
 
