@@ -60,6 +60,26 @@ public class MatrixFileGenerator {
     }
   }
 
+  public static void writeShortMatrixFile(
+      int n, int m, boolean isBigEndian, String outFile)
+      throws IOException {
+    Path pointsFile = Paths.get(outFile);
+    Random random = new Random();
+    try (
+        BufferedOutputStream pointBufferedStream = new BufferedOutputStream(
+            Files.newOutputStream(pointsFile, StandardOpenOption.CREATE)))
+    {
+      DataOutput pointStream = isBigEndian ? new DataOutputStream(
+          pointBufferedStream) : new LittleEndianDataOutputStream(
+          pointBufferedStream);
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+          pointStream.writeShort(Math.abs(random.nextInt(Short.MAX_VALUE)));
+        }
+      }
+    }
+  }
+
   public static void writeMatrixFile(
       int n, int m, double []data, boolean isBigEndian, String outFile)
       throws IOException {
@@ -93,6 +113,26 @@ public class MatrixFileGenerator {
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
            data[index++] = pointStream.readDouble();
+        }
+      }
+      return data;
+    }
+  }
+
+  public static short[] readShortMatrixFile(String fileName, int rows, int cols, boolean isBigEndian) throws IOException {
+    Path pointsFile = Paths.get(fileName);
+    try (
+        BufferedInputStream pointBufferedStream = new BufferedInputStream(
+            Files.newInputStream(pointsFile, StandardOpenOption.READ)))
+    {
+      DataInput pointStream = isBigEndian ? new DataInputStream(
+          pointBufferedStream) : new LittleEndianDataInputStream(
+          pointBufferedStream);
+      short []data = new short[rows * cols];
+      int index = 0;
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          data[index++] = pointStream.readShort();
         }
       }
       return data;

@@ -1,13 +1,10 @@
 package edu.iu.dsc.flink.damds;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import edu.indiana.soic.spidal.common.DoubleStatistics;
 import edu.iu.dsc.flink.damds.configuration.ConfigurationMgr;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
-import edu.iu.dsc.flink.mm.DoubleMatrixBlock;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
-import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -58,7 +55,6 @@ public class DAMDS {
     DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
     DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
     stressLoop.closeWith(newPrex, terminate);
-
 
     // todo close temperature loop
     tempLoop.closeWith(tCur);
