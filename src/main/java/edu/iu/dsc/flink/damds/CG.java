@@ -45,14 +45,14 @@ public class CG {
     DataSet<Double> rTr = innerProductCalculation(newMMr);
 
     // now loop
-    IterativeDataSet<Matrix> loop = newBC.iterate(cgIter);
+    IterativeDataSet<Matrix> bcLoop = newBC.iterate(cgIter);
     DataSet<Matrix> MMap = calculateMM(newBC, vArray, parameters);
     DataSet<Double> alpha = innerProductCalculation(newBC, MMap, rTr);
 
     DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
-        System.out.println("CG Loop *************************************************************************");
+        System.out.println("CG Loop 1 *************************************************************************");
         List<Matrix> bcMatrixList = getRuntimeContext().getBroadcastVariable("bc");
         List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
         Matrix bcMatrix = bcMatrixList.get(0);
@@ -75,6 +75,7 @@ public class CG {
     newMMr = MMap.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
+        System.out.println("CG Loop 2 **********************************************************************");
         List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
         double alpha = alphaList.get(0);
@@ -99,6 +100,7 @@ public class CG {
     newBC = newBC.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
+        System.out.println("CG Loop 3 **********************************************************************");
         List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         List<Double> betaList = getRuntimeContext().getBroadcastVariable("beta");
         double beta = betaList.get(0);
@@ -117,7 +119,7 @@ public class CG {
       }
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
     // done with BC iterations
-    loop.closeWith(newBC);
+    bcLoop.closeWith(newBC);
 
     return newPrex;
   }
@@ -201,6 +203,7 @@ public class CG {
 
       @Override
       public Tuple2<Integer, Matrix> map(Matrix matrx) throws Exception {
+        System.out.println("Matrix multiply ***************************************");
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);

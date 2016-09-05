@@ -45,8 +45,8 @@ public class DAMDS {
     DataSet<Double> tCur = createTCur(stats, parameters);
 
     // we need to register a filter to terminate the loop
-    IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
-    IterativeDataSet<Matrix> stressLoop = prex.iterate(config.maxtemploops);
+//    IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
+//    IterativeDataSet<Matrix> stressLoop = prex.iterate(config.maxtemploops);
     // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
@@ -54,10 +54,10 @@ public class DAMDS {
     // now calculate stress
     DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
     DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
-    stressLoop.closeWith(newPrex, terminate);
+//    stressLoop.closeWith(newPrex, terminate);
 
     // todo close temperature loop
-    tempLoop.closeWith(tCur);
+//    tempLoop.closeWith(tCur);
     newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
   }
 
