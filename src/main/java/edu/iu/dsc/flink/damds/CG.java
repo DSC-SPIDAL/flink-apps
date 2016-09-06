@@ -10,6 +10,7 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.util.Comparator;
@@ -45,9 +46,11 @@ public class CG {
     DataSet<Double> rTr = innerProductCalculation(newMMr);
 
     // now loop
-    IterativeDataSet<Matrix> bcLoop = newBC.iterate(cgIter);
-    DataSet<Matrix> MMap = calculateMM(newBC, vArray, parameters);
-    DataSet<Double> alpha = innerProductCalculation(newBC, MMap, rTr);
+    IterativeDataSet<Matrix> bcLoop = newBC.iterate(10);
+    //IterativeDataSet<Matrix> bcLoop = newBC.iterate(cgIter);
+    DataSet<Matrix> MMap = calculateMM(bcLoop, vArray, parameters);
+    DataSet<Double> alpha = innerProductCalculation(bcLoop, MMap, rTr);
+    // MMap.writeAsText("MMp.txt", FileSystem.WriteMode.OVERWRITE);
 
     DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
@@ -69,10 +72,10 @@ public class CG {
         }
         return matrix;
       }
-    }).withBroadcastSet(newBC, "bc").withBroadcastSet(alpha, "alpha");
+    }).withBroadcastSet(bcLoop, "bc").withBroadcastSet(alpha, "alpha");
 
     // update MMr
-    newMMr = MMap.map(new RichMapFunction<Matrix, Matrix>() {
+    DataSet<Matrix> newMMr2 = MMap.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
         System.out.println("CG Loop 2 **********************************************************************");
@@ -94,10 +97,10 @@ public class CG {
       }
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(alpha, "alpha");
 
-    DataSet<Double> rtr1 = innerProductCalculation(newMMr);
+    DataSet<Double> rtr1 = innerProductCalculation(newMMr2);
     DataSet<Double> beta = devide(rtr1, rTr);
 
-    newBC = newBC.map(new RichMapFunction<Matrix, Matrix>() {
+    DataSet<Matrix> newBC2 = bcLoop.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
         System.out.println("CG Loop 3 **********************************************************************");
@@ -119,8 +122,8 @@ public class CG {
       }
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
     // done with BC iterations
-    bcLoop.closeWith(newBC);
-
+    DataSet<Matrix> finalBC = bcLoop.closeWith(newBC2);
+    finalBC.writeAsText("bc2.txt", FileSystem.WriteMode.OVERWRITE);
     return newPrex;
   }
 
