@@ -58,7 +58,7 @@ public class DAMDS {
 
     // todo close temperature loop
 //    tempLoop.closeWith(tCur);
-    //newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
+    newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
   }
 
   public DataSet<Boolean> streeDiff(DataSet<Double> preStree, DataSet<Double> postStress, Configuration parameters) {

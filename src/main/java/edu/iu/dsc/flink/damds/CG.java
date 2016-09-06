@@ -123,8 +123,15 @@ public class CG {
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
     // done with BC iterations
     DataSet<Matrix> finalBC = bcLoop.closeWith(newBC2);
+    DataSet<Matrix> finalPrex = finalBC.map(new RichMapFunction<Matrix, Matrix>() {
+      @Override
+      public Matrix map(Matrix matrix) throws Exception {
+        List<Matrix> bcMatrixList = getRuntimeContext().getBroadcastVariable("prex");
+        return bcMatrixList.get(0);
+      }
+    }).withBroadcastSet(newPrex, "prex");
     finalBC.writeAsText("bc2.txt", FileSystem.WriteMode.OVERWRITE);
-    return newPrex;
+    return finalPrex;
   }
 
   public static DataSet<Double> devide(DataSet<Double> a, DataSet<Double> b) {
