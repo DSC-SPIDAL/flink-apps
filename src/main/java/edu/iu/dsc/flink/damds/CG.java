@@ -64,7 +64,6 @@ public class CG {
     DataSet<Tuple2<Matrix, Matrix>> newPrex = prexbcloop.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Tuple2<Matrix, Matrix>>() {
       @Override
       public Tuple2<Matrix, Matrix> map(Tuple2<Matrix, Matrix> matrix) throws Exception {
-        System.out.println("CG Loop 1 *************************************************************************");
         List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
         Matrix bcMatrix = matrix.f1;
         double alpha = alphaList.get(0);
@@ -86,7 +85,6 @@ public class CG {
     DataSet<Matrix> newMMr2 = MMap.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {
-        System.out.println("CG Loop 2 **********************************************************************");
         List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
         double alpha = alphaList.get(0);
@@ -111,7 +109,6 @@ public class CG {
     DataSet<Tuple2<Matrix, Matrix>> newBC2 = newPrex.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Tuple2<Matrix, Matrix>>() {
       @Override
       public Tuple2<Matrix, Matrix> map(Tuple2<Matrix, Matrix> matrix) throws Exception {
-        System.out.println("CG Loop 3 **********************************************************************");
         List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         List<Double> betaList = getRuntimeContext().getBroadcastVariable("beta");
         double beta = betaList.get(0);
