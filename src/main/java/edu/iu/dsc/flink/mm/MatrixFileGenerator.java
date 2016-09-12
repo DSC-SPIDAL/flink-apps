@@ -5,6 +5,7 @@ import com.google.common.io.LittleEndianDataInputStream;
 import com.google.common.io.LittleEndianDataOutputStream;
 import org.apache.commons.cli.*;
 
+import java.awt.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,7 +39,8 @@ public class MatrixFileGenerator {
 //      data[i] = Math.random();
 //    }
     // writeMatrixFile(n, m, data, true, fileName);
-    writeShortMatrixFile(n, m, true, fileName);
+//    writeShortMatrixFile(n, m, true, fileName);
+    writePointsFile(n, m, fileName);
   }
 
   public static void writeMatrixFile(
@@ -138,5 +140,27 @@ public class MatrixFileGenerator {
       }
       return data;
     }
+  }
+
+  public static void writePointsFile(int n, int m, String outFile) throws IOException {
+
+    FileWriter fw = new FileWriter(new File(outFile));
+    BufferedWriter bw = new BufferedWriter(fw);
+
+    Random random = new Random();
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < m; j++) {
+        double prob = random.nextDouble();
+        if (prob > .5) {
+          bw.write(random.nextDouble() + "");
+        } else {
+          bw.write((random.nextDouble() * -1) + "");
+        }
+        bw.write("\t");
+      }
+      bw.write("\n");
+    }
+    bw.close();
+    fw.close();
   }
 }

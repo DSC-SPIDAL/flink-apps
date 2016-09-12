@@ -36,7 +36,7 @@ public class DAMDS {
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     // now load the points
-    DataSet<Matrix> prex = loader.loadPointDataSet();
+    DataSet<Matrix> prex = loader.loadInitPointDataSet();
     // generate vArray
     DataSet<Matrix> vArray = VArray.generateVArray(distances, parameters);
     // add tcur and tmax to matrix
