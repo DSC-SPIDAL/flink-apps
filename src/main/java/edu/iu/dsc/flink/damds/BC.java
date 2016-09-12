@@ -22,11 +22,11 @@ public class BC {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         Matrix prexMatrix = matrix.get(0);
         double tCur = (double) prexMatrix.getProperties().get("tCur");
-        double [][]internalBofZ = new double[sMB.getBlockRows()][];
+        double[][] internalBofZ = new double[sMB.getBlockRows()][];
         for (int i = 0; i < sMB.getBlockRows(); i++) {
           internalBofZ[i] = new double[sMB.getMatrixCols()];
         }
-        double [] threadPartialBCInternalMM = new double[prexMatrix.getCols() * sMB.getBlockRows()];
+        double[] threadPartialBCInternalMM = new double[prexMatrix.getCols() * sMB.getBlockRows()];
         calculateBCInternal(prexMatrix.getData(), prexMatrix.getCols(), tCur, sMB.getData(), sMB.getBlockRows(),
             internalBofZ, threadPartialBCInternalMM, sMB.getBlockRows(), sMB.getStart(), sMB.getMatrixCols());
 
@@ -88,7 +88,7 @@ public class BC {
 
     double diff = 0.0;
     if (tCur > 10E-10) {
-      diff = Math.sqrt(2.0 * targetDimension)  * tCur;
+      diff = Math.sqrt(2.0 * targetDimension) * tCur;
     }
 
     int globalRow, procLocalRow;
@@ -98,7 +98,7 @@ public class BC {
       outBofZLocalRow = outBofZ[localRow];
       outBofZLocalRow[globalRow] = 0;
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
-				/*
+        /*
 				 * B_ij = - w_ij * delta_ij / d_ij(Z), if (d_ij(Z) != 0) 0,
 				 * otherwise v_ij = - w_ij.
 				 *
@@ -111,12 +111,12 @@ public class BC {
         // separately (see above).
         if (globalRow == globalCol) continue;
 
-        origD = distances[procLocalRow*globalColCount+globalCol] * DAMDSUtils.INV_SHORT_MAX;
+        origD = distances[procLocalRow * globalColCount + globalCol] * DAMDSUtils.INV_SHORT_MAX;
         weight = 1;
         if (origD < 0 || weight == 0) {
           continue;
         }
-        dist = DAMDSUtils.calculateEuclideanDist(preX, globalRow, globalCol,targetDimension);
+        dist = DAMDSUtils.calculateEuclideanDist(preX, globalRow, globalCol, targetDimension);
         if (dist >= 1.0E-10 && diff < origD) {
           outBofZLocalRow[globalCol] = (weight * vBlockValue * (origD - diff) / dist);
         } else {

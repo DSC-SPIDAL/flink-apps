@@ -9,6 +9,7 @@ import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.IterativeDataSet;
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import java.util.List;
@@ -31,7 +32,7 @@ public class DAMDS {
     Configuration parameters = ConfigurationMgr.getConfiguration(config);
 
     // read the distances partitioned
-    DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlockTest();
+    DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     // now load the points
@@ -50,15 +51,21 @@ public class DAMDS {
     // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
-    DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
+    DataSet<Tuple2<Matrix, Matrix>> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
-    DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
-    DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
+    // DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
+    //DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
 //    stressLoop.closeWith(newPrex, terminate);
 
     // todo close temperature loop
 //    tempLoop.closeWith(tCur);
-    newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
+    DataSet<Matrix> finalPrex = newPrex.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Matrix>() {
+      @Override
+      public Matrix map(Tuple2<Matrix, Matrix> matrixMatrixTuple2) throws Exception {
+        return matrixMatrixTuple2.f0;
+      }
+    });
+    finalPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
   }
 
   public DataSet<Boolean> streeDiff(DataSet<Double> preStree, DataSet<Double> postStress, Configuration parameters) {

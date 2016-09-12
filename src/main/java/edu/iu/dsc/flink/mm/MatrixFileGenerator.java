@@ -33,11 +33,12 @@ public class MatrixFileGenerator {
     int n = Integer.parseInt(cmd.getOptionValue("n"));
     int m = Integer.parseInt(cmd.getOptionValue("m"));
     String fileName = cmd.getOptionValue("f");
-    double []data = new double[n * m];
-    for (int i = 0; i < n * m; i++) {
-      data[i] = Math.random();
-    }
-    writeMatrixFile(n, m, data, true, fileName);
+//    double []data = new double[n * m];
+//    for (int i = 0; i < n * m; i++) {
+//      data[i] = Math.random();
+//    }
+    // writeMatrixFile(n, m, data, true, fileName);
+    writeShortMatrixFile(n, m, true, fileName);
   }
 
   public static void writeMatrixFile(

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class CG {
-  public static DataSet<Matrix> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
+  public static DataSet<Tuple2<Matrix, Matrix>> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
                                                  DataSet<Matrix> vArray, Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
     DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
@@ -43,36 +43,44 @@ public class CG {
       }
     }).withBroadcastSet(BC, "bc");
 
-    DataSet<Double> rTr = innerProductCalculation(newMMr);
+    DataSet<Double> rTr = bcInnerProductCalculation(newMMr);
+
+    // now compbine prex and bc because flink cannot loop over bc and return prex
+    DataSet<Tuple2<Matrix, Matrix>> prexbc = newBC.map(new RichMapFunction<Matrix, Tuple2<Matrix, Matrix>>() {
+      @Override
+      public Tuple2<Matrix, Matrix> map(Matrix bcMatrix) throws Exception {
+        List<Matrix> prexMatrixList = getRuntimeContext().getBroadcastVariable("prex");
+        Matrix prexMatrix = prexMatrixList.get(0);
+        return new Tuple2<Matrix, Matrix>(prexMatrix, bcMatrix);
+      }
+    }).withBroadcastSet(preX, "prex");
 
     // now loop
-    IterativeDataSet<Matrix> bcLoop = newBC.iterate(10);
+    IterativeDataSet<Tuple2<Matrix, Matrix>> prexbcloop = prexbc.iterate(10);
     //IterativeDataSet<Matrix> bcLoop = newBC.iterate(cgIter);
-    DataSet<Matrix> MMap = calculateMM(bcLoop, vArray, parameters);
-    DataSet<Double> alpha = innerProductCalculation(bcLoop, MMap, rTr);
-    // MMap.writeAsText("MMp.txt", FileSystem.WriteMode.OVERWRITE);
+    DataSet<Matrix> MMap = calculateMMBC(prexbcloop, vArray, parameters);
+    DataSet<Double> alpha = bcInnerProductCalculation(prexbcloop, MMap, rTr);
 
-    DataSet<Matrix> newPrex = preX.map(new RichMapFunction<Matrix, Matrix>() {
+    DataSet<Tuple2<Matrix, Matrix>> newPrex = prexbcloop.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Tuple2<Matrix, Matrix>>() {
       @Override
-      public Matrix map(Matrix matrix) throws Exception {
+      public Tuple2<Matrix, Matrix> map(Tuple2<Matrix, Matrix> matrix) throws Exception {
         System.out.println("CG Loop 1 *************************************************************************");
-        List<Matrix> bcMatrixList = getRuntimeContext().getBroadcastVariable("bc");
         List<Double> alphaList = getRuntimeContext().getBroadcastVariable("alpha");
-        Matrix bcMatrix = bcMatrixList.get(0);
+        Matrix bcMatrix = matrix.f1;
         double alpha = alphaList.get(0);
-        double []prex = matrix.getData();
+        double []prex = matrix.f0.getData();
         double []bc = bcMatrix.getData();
         //update Xi to Xi+1
         int iOffset;
-        for(int i = 0; i < matrix.getRows(); ++i) {
-          iOffset = i * matrix.getCols();
-          for (int j = 0; j < matrix.getCols(); ++j) {
+        for(int i = 0; i < matrix.f0.getRows(); ++i) {
+          iOffset = i * matrix.f0.getCols();
+          for (int j = 0; j < matrix.f0.getCols(); ++j) {
             prex[iOffset+j] += alpha * bc[iOffset+j];
           }
         }
         return matrix;
       }
-    }).withBroadcastSet(bcLoop, "bc").withBroadcastSet(alpha, "alpha");
+    }).withBroadcastSet(alpha, "alpha");
 
     // update MMr
     DataSet<Matrix> newMMr2 = MMap.map(new RichMapFunction<Matrix, Matrix>() {
@@ -97,24 +105,24 @@ public class CG {
       }
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(alpha, "alpha");
 
-    DataSet<Double> rtr1 = innerProductCalculation(newMMr2);
+    DataSet<Double> rtr1 = bcInnerProductCalculation(newMMr2);
     DataSet<Double> beta = devide(rtr1, rTr);
 
-    DataSet<Matrix> newBC2 = bcLoop.map(new RichMapFunction<Matrix, Matrix>() {
+    DataSet<Tuple2<Matrix, Matrix>> newBC2 = newPrex.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Tuple2<Matrix, Matrix>>() {
       @Override
-      public Matrix map(Matrix matrix) throws Exception {
+      public Tuple2<Matrix, Matrix> map(Tuple2<Matrix, Matrix> matrix) throws Exception {
         System.out.println("CG Loop 3 **********************************************************************");
         List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         List<Double> betaList = getRuntimeContext().getBroadcastVariable("beta");
         double beta = betaList.get(0);
-        double []bc = matrix.getData();
+        double []bc = matrix.f1.getData();
         Matrix mmrMatrix = mmrMatrixList.get(0);
         double []mmr = mmrMatrix.getData();
 
         int iOffset;
-        for(int i = 0; i < matrix.getRows(); ++i) {
-          iOffset = i * matrix.getCols();
-          for (int j = 0; j < matrix.getCols(); ++j) {
+        for(int i = 0; i < matrix.f1.getRows(); ++i) {
+          iOffset = i * matrix.f1.getCols();
+          for (int j = 0; j < matrix.f1.getCols(); ++j) {
             bc[iOffset+j] = mmr[iOffset+j] + beta * bc[iOffset+j];
           }
         }
@@ -122,16 +130,9 @@ public class CG {
       }
     }).withBroadcastSet(newMMr, "mmr").withBroadcastSet(beta, "beta");
     // done with BC iterations
-    DataSet<Matrix> finalBC = bcLoop.closeWith(newBC2);
-    DataSet<Matrix> finalPrex = finalBC.map(new RichMapFunction<Matrix, Matrix>() {
-      @Override
-      public Matrix map(Matrix matrix) throws Exception {
-        List<Matrix> bcMatrixList = getRuntimeContext().getBroadcastVariable("prex");
-        return bcMatrixList.get(0);
-      }
-    }).withBroadcastSet(newPrex, "prex");
+    DataSet<Tuple2<Matrix, Matrix>> finalBC = prexbcloop.closeWith(newBC2);
     finalBC.writeAsText("bc2.txt", FileSystem.WriteMode.OVERWRITE);
-    return finalPrex;
+    return finalBC;
   }
 
   public static DataSet<Double> devide(DataSet<Double> a, DataSet<Double> b) {
@@ -146,11 +147,11 @@ public class CG {
     return ab;
   }
 
-  public static DataSet<Double> innerProductCalculation(DataSet<Matrix> aM, DataSet<Matrix> bM, DataSet<Double> rTr) {
-    DataSet<Double> d = aM.map(new RichMapFunction<Matrix, Double>() {
+  public static DataSet<Double> bcInnerProductCalculation(DataSet<Tuple2<Matrix, Matrix>> aM, DataSet<Matrix> bM, DataSet<Double> rTr) {
+    DataSet<Double> d = aM.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Double>() {
       @Override
-      public Double map(Matrix matrix) throws Exception {
-        double []a = matrix.getData();
+      public Double map(Tuple2<Matrix, Matrix> matrix) throws Exception {
+        double []a = matrix.f1.getData();
         List<Matrix> bMatrixList = getRuntimeContext().getBroadcastVariable("b");
         List<Double> rtrData = getRuntimeContext().getBroadcastVariable("rtr");
         double rtr = rtrData.get(0);
@@ -168,7 +169,7 @@ public class CG {
     return d;
   }
 
-  private static DataSet<Double>  innerProductCalculation(DataSet<Matrix> m) {
+  private static DataSet<Double> bcInnerProductCalculation(DataSet<Matrix> m) {
     DataSet<Double> p = m.map(new MapFunction<Matrix, Double>() {
       @Override
       public Double map(Matrix matrix) throws Exception {
@@ -216,6 +217,63 @@ public class CG {
         System.out.println("Matrix multiply ***************************************");
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
+        double []outMM = new double[matrx.getRows() * targetDimension];
+
+        // todo figure out the details of the calculation
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), 0);
+        Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
+        return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
+      }
+    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+      @Override
+      public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
+        TreeSet<Tuple2<Integer, Matrix>> set = new TreeSet<Tuple2<Integer, Matrix>>(new Comparator<Tuple2<Integer, Matrix>>() {
+          @Override
+          public int compare(Tuple2<Integer, Matrix> o1, Tuple2<Integer, Matrix> o2) {
+            return o1.f0.compareTo(o2.f0);
+          }
+        });
+
+        // gather the reduce
+        int rows = 0;
+        int cols = 0;
+        for (Tuple2<Integer, Matrix> t : iterable) {
+          set.add(t);
+          rows += t.f1.getRows();
+          cols = t.f1.getCols();
+        }
+        int cellCount = 0;
+        double[] vals = new double[rows * cols];
+        for (Tuple2<Integer, Matrix> t : set) {
+          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
+          System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
+          cellCount += t.f1.getData().length;
+        }
+        Matrix retMatrix = new Matrix(vals, rows, cols, false);
+        collector.collect(retMatrix);
+      }
+    });
+    return out;
+  }
+
+  private static DataSet<Matrix> calculateMMBC(DataSet<Tuple2<Matrix, Matrix>> A, DataSet<Matrix> vArray, Configuration parameters) {
+    DataSet<Matrix> out = vArray.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
+      int targetDimension;
+      int globalCols;
+
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        this.targetDimension = parameters.getInteger(Constants.TARGET_DIMENSION, 3);
+        this.globalCols = parameters.getInteger(Constants.GLOBAL_COLS, 0);
+      }
+
+      @Override
+      public Tuple2<Integer, Matrix> map(Matrix matrx) throws Exception {
+        System.out.println("Matrix multiply ***************************************");
+        List<Tuple2<Matrix, Matrix>> prex = getRuntimeContext().getBroadcastVariable("prex");
+        Matrix preXM = prex.get(0).f1;
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
         double []outMM = new double[matrx.getRows() * targetDimension];
 
