@@ -17,7 +17,7 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
   protected int globalColumnCount;
   protected int globalRowCount;
   protected boolean isRead = false;
-
+  protected int byteSize = Double.BYTES;
   @Override
   public FileInputSplit[] createInputSplits(int minNumSplits)
       throws IOException {
@@ -37,7 +37,7 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
       if (blocks.length != 1) {
         throw new RuntimeException("File blocks should be 1 for local file system");
       }
-      length = (q + (i < r ? 1 : 0)) * globalColumnCount * Double.BYTES;
+      length = (q + (i < r ? 1 : 0)) * globalColumnCount * byteSize;
       FileInputSplit fis = new FileInputSplit(i, this.filePath, start, length, blocks[0].getHosts());
       splits[i] = fis;
       start += length;

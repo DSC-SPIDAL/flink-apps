@@ -11,22 +11,26 @@ public class ShortMatrixInputFormat extends MatrixInputFormat<ShortMatrixBlock> 
   private static final Logger LOG = LoggerFactory
       .getLogger(DoubleMatrixInputFormat.class);
 
+  public ShortMatrixInputFormat() {
+    this.byteSize = Short.BYTES;
+  }
+
   @Override
   public ShortMatrixBlock nextRecord(ShortMatrixBlock block) throws IOException {
     long splitLength = getSplitLength();
-    int rows = (int) (splitLength / (Double.BYTES * globalColumnCount));
+    int rows = (int) (splitLength / (Short.BYTES * globalColumnCount));
     int splitIndex = this.currentSplit.getSplitNumber();
     LOG.info("{} Split Length: {}\n", splitIndex, splitLength);
-    int length = (int)(this.splitLength / Double.BYTES);
+    int length = (int)(this.splitLength / Short.BYTES);
     block = new ShortMatrixBlock();
 
-    block.setStart((int) this.getSplitStart() / (Double.BYTES * globalColumnCount));
+    block.setStart((int) this.getSplitStart() / (Short.BYTES * globalColumnCount));
     block.setBlockRows(rows);
     block.setIndex(splitIndex);
     block.setMatrixCols(globalColumnCount);
     block.setMatrixRows(globalRowCount);
 
-    short[] reuse = new short[(int) (getSplitLength() / Double.BYTES)];
+    short[] reuse = new short[(int) (getSplitLength() / Short.BYTES)];
     if (isBigEndian) {
       DataInputStream dis = new DataInputStream(this.stream);
       for (int i = 0; i < length; ++i) {

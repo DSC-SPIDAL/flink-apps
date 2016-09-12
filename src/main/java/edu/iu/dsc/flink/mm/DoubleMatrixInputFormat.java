@@ -11,6 +11,10 @@ public class DoubleMatrixInputFormat extends MatrixInputFormat<DoubleMatrixBlock
   private static final Logger LOG = LoggerFactory
       .getLogger(DoubleMatrixInputFormat.class);
 
+  public DoubleMatrixInputFormat() {
+    this.byteSize = Double.BYTES;
+  }
+
   @Override
   public DoubleMatrixBlock nextRecord(DoubleMatrixBlock block) throws IOException {
     long splitLength = getSplitLength();
