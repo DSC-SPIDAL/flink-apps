@@ -16,6 +16,8 @@ public class Matrix implements Serializable {
 
   int index;
 
+  public int count;
+
   private Map<String, Object> properties = new HashMap<String, Object>();
 
   boolean columnMajor = true;
@@ -100,6 +102,14 @@ public class Matrix implements Serializable {
 
   public void setProperties(Map<String, Object> properties) {
     this.properties = properties;
+  }
+
+  public int getCount() {
+    return count;
+  }
+
+  public void setCount(int count) {
+    this.count = count;
   }
 
   @Override

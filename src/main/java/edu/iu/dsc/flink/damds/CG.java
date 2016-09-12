@@ -56,7 +56,7 @@ public class CG {
     }).withBroadcastSet(preX, "prex");
 
     // now loop
-    IterativeDataSet<Tuple2<Matrix, Matrix>> prexbcloop = prexbc.iterate(10);
+    IterativeDataSet<Tuple2<Matrix, Matrix>> prexbcloop = prexbc.iterate(cgIter);
     //IterativeDataSet<Matrix> bcLoop = newBC.iterate(cgIter);
     DataSet<Matrix> MMap = calculateMMBC(prexbcloop, vArray, parameters);
     DataSet<Double> alpha = bcInnerProductCalculation(prexbcloop, MMap, rTr);
@@ -115,7 +115,7 @@ public class CG {
         double []bc = matrix.f1.getData();
         Matrix mmrMatrix = mmrMatrixList.get(0);
         double []mmr = mmrMatrix.getData();
-
+        System.out.println("Loop count ************************************************************************ " + matrix.f0.count++);
         int iOffset;
         for(int i = 0; i < matrix.f1.getRows(); ++i) {
           iOffset = i * matrix.f1.getCols();
