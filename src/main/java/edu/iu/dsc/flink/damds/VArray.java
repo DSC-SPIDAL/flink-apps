@@ -23,11 +23,11 @@ public class VArray {
       public Matrix map(ShortMatrixBlock shortMatrixBlock) throws Exception {
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, 0);
         short[] distances = shortMatrixBlock.getData();
-        double[] vArray = new double[shortMatrixBlock.getBlockRows() * targetDimention];
+        double[] vArray = new double[shortMatrixBlock.getBlockRows()];
         generateVArrayInternal(distances, weightsWrap1D, vArray,
             shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(),
             shortMatrixBlock.getMatrixCols());
-        Matrix m = new Matrix(vArray, shortMatrixBlock.getBlockRows(), targetDimention,
+        Matrix m = new Matrix(vArray, shortMatrixBlock.getBlockRows(), 1,
             shortMatrixBlock.getIndex(), false);
         return m;
       }

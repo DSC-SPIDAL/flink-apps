@@ -39,6 +39,7 @@ public class DAMDS {
     DataSet<Matrix> prex = loader.loadInitPointDataSet();
     // generate vArray
     DataSet<Matrix> vArray = VArray.generateVArray(distances, parameters);
+    vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
 
