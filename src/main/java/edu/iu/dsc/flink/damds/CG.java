@@ -222,7 +222,7 @@ public class CG {
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getIndex() * matrx.getRows());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }
@@ -279,7 +279,7 @@ public class CG {
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), matrx.getIndex() * matrx.getRows());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }

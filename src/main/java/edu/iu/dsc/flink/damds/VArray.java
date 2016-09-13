@@ -29,6 +29,7 @@ public class VArray {
             shortMatrixBlock.getMatrixCols());
         Matrix m = new Matrix(vArray, shortMatrixBlock.getBlockRows(), 1,
             shortMatrixBlock.getIndex(), false);
+        m.setStartIndex(shortMatrixBlock.getStart());
         return m;
       }
     }).withParameters(parameters);

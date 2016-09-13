@@ -22,6 +22,9 @@ public class Matrix implements Serializable {
 
   boolean columnMajor = true;
 
+  // the starting row index if this is a partitioned matrix
+  int startIndex;
+
   public Matrix() {
   }
 
@@ -110,6 +113,14 @@ public class Matrix implements Serializable {
 
   public void setCount(int count) {
     this.count = count;
+  }
+
+  public int getStartIndex() {
+    return startIndex;
+  }
+
+  public void setStartIndex(int startIndex) {
+    this.startIndex = startIndex;
   }
 
   @Override
