@@ -14,7 +14,6 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -219,7 +218,6 @@ public class CG {
     return p;
   }
 
-  @NotNull
   private static Double InnerProductMatrix(Matrix matrix) {
     double []a = matrix.getData();
     double sum = 0.0;
