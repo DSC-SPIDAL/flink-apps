@@ -51,6 +51,7 @@ public class DAMDS {
     // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
+    bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Tuple2<Matrix, Matrix>> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
     // DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
