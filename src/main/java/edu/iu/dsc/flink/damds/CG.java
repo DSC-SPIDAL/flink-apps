@@ -21,6 +21,7 @@ public class CG {
   public static DataSet<Tuple2<Matrix, Matrix>> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
                                                  DataSet<Matrix> vArray, Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
+    MMr.writeAsText("mmr1", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix MMR) throws Exception {
@@ -42,6 +43,9 @@ public class CG {
         return MMR;
       }
     }).withBroadcastSet(BC, "bc");
+
+    newMMr.writeAsText("newMmr", FileSystem.WriteMode.OVERWRITE);
+    newBC.writeAsText("newBc", FileSystem.WriteMode.OVERWRITE);
 
     DataSet<Double> rTr = bcInnerProductCalculation(newMMr);
 
@@ -218,7 +222,7 @@ public class CG {
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), matrx.getIndex() * matrx.getRows());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getIndex() * matrx.getRows());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }
