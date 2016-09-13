@@ -74,7 +74,7 @@ public class DataLoader {
   public DataSet<Matrix> loadInitPointDataSet() {
     int n = config.numberDataPoints;
     int m = config.targetDimension;
-    Matrix matrixB = new Matrix(n, m);
+    Matrix matrixB = new Matrix(n, m, false);
     Path path = Paths.get(config.initialPointsFile);
     try {
       try (Scanner scanner = new Scanner(path)) {

@@ -3,6 +3,7 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
+import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -15,6 +16,8 @@ import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.TreeSet;
@@ -45,6 +48,8 @@ public class CG {
         double rTr = InnerProductMatrix(MMR);
         System.out.println("###########################  init rTr: " + rTr);
         MMR.addProperty("rTr", rTr);
+        MMR.addProperty("testEnd", rTr * 0.00001);
+        MMR.addProperty("break", false);
         return MMR;
       }
     }).withBroadcastSet(BC, "bc");
@@ -77,14 +82,17 @@ public class CG {
         Matrix prexMatrix = loop.f0;
         Matrix mmrMatrix = loop.f2;
         Matrix mmapMatrix = mmapList.get(0);
+        writeToFile("mmap", mmapMatrix.toString());
 
-        double []prex = loop.f0.getData();
+        double []prex = prexMatrix.getData();
         double []bc = bcMatrix.getData();
         double []mmr = mmrMatrix.getData();
         double []mmap = mmapMatrix.getData();
 
         double rtr = (double) mmrMatrix.getProperties().get("rTr");
-        double alpha = rtr / innerProductCalculation(bc, mmap);
+        double innerProduct = innerProductCalculation(bc, mmap);
+        System.out.println("********************* Inner product: " + innerProduct);
+        double alpha = rtr / innerProduct;
         System.out.println("********************* Alpha: " + alpha);
         //update Xi to Xi+1
         int iOffset;
@@ -95,6 +103,11 @@ public class CG {
           for (int j = 0; j < targetDimension; ++j) {
             prex[iOffset+j] += alpha * bc[iOffset+j];
           }
+        }
+
+        double testEnd = (double) mmrMatrix.getProperties().get("testEnd");
+        if (rtr < testEnd) {
+          mmrMatrix.addProperty("break", true);
         }
 
         //update ri to ri+1
@@ -118,20 +131,37 @@ public class CG {
           }
         }
 
+        writeToFile("point", prexMatrix.toString());
         return loop;
       }
     }).withBroadcastSet(MMap, "mmap");
 
     // done with BC iterations
-    DataSet<Tuple3<Matrix, Matrix, Matrix>> finalBC = prexbcloop.closeWith(newLoop);
+    DataSet<Tuple3<Matrix, Matrix, Matrix>> finalBC = prexbcloop.closeWith(newLoop, newLoop.filter(new FilterFunction<Tuple3<Matrix, Matrix, Matrix>>() {
+      @Override
+      public boolean filter(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
+        Matrix mmrMatrix = loop.f2;
+        return (boolean) mmrMatrix.getProperties().get("break");
+      }
+    }));
     DataSet<Matrix> prex = finalBC.map(new RichMapFunction<Tuple3<Matrix, Matrix, Matrix>, Matrix>() {
       @Override
-      public Matrix map(Tuple3<Matrix, Matrix, Matrix> matrixMatrixMatrixTuple3) throws Exception {
-        return matrixMatrixMatrixTuple3.f0;
+      public Matrix map(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
+        return loop.f0;
       }
     });
 
     return prex;
+  }
+
+  private static void writeToFile(String file, String content) {
+    try {
+      PrintWriter out = new PrintWriter(file);
+      out.write(content);
+      out.close();
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    }
   }
 
   private static double innerProductCalculation(double[] a, double[] b) {
@@ -294,7 +324,7 @@ public class CG {
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 64, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }
