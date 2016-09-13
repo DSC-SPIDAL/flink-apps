@@ -3,6 +3,7 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
+import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
@@ -23,7 +24,8 @@ import java.util.TreeSet;
 
 public class CG {
   public static DataSet<Matrix> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
-                                                 DataSet<Matrix> vArray, Configuration parameters, int cgIter) {
+                                                           DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray,
+                                                           Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
     MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
@@ -244,8 +246,8 @@ public class CG {
     }
   }
 
-  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Matrix> vArray, Configuration parameters) {
-    DataSet<Matrix> out = vArray.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
+  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray, Configuration parameters) {
+    DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       int targetDimension;
       int globalCols;
 
@@ -257,11 +259,14 @@ public class CG {
       }
 
       @Override
-      public Tuple2<Integer, Matrix> map(Matrix matrx) throws Exception {
+      public Tuple2<Integer, Matrix> map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
         System.out.println("Matrix multiply ***************************************");
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
-        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
+        Matrix matrx = tuple.f0;
+        ShortMatrixBlock weightBlock = tuple.f1;
+        // todo figure out the weights
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weightBlock.getData(), null, false, globalCols);
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
@@ -301,8 +306,8 @@ public class CG {
     return out;
   }
 
-  private static DataSet<Matrix> calculateMMBC(DataSet<Tuple3<Matrix, Matrix, Matrix>> A, DataSet<Matrix> vArray, Configuration parameters) {
-    DataSet<Matrix> out = vArray.map(new RichMapFunction<Matrix, Tuple2<Integer, Matrix>>() {
+  private static DataSet<Matrix> calculateMMBC(DataSet<Tuple3<Matrix, Matrix, Matrix>> A, DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray, Configuration parameters) {
+    DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       int targetDimension;
       int globalCols;
 
@@ -314,10 +319,12 @@ public class CG {
       }
 
       @Override
-      public Tuple2<Integer, Matrix> map(Matrix matrx) throws Exception {
+      public Tuple2<Integer, Matrix> map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
         System.out.println("Matrix multiply ***************************************");
         List<Tuple3<Matrix, Matrix, Matrix>> prex = getRuntimeContext().getBroadcastVariable("cgloop");
         Matrix preXM = prex.get(0).f1;
+        Matrix matrx = tuple.f0;
+        ShortMatrixBlock weightBlock = tuple.f1;
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
         double []outMM = new double[matrx.getRows() * targetDimension];
 

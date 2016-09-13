@@ -36,6 +36,15 @@ public class DataLoader {
     return env.readFile(inputFormat, config.distanceMatrixFile);
   }
 
+  public DataSet<ShortMatrixBlock> loadWeightBlock() {
+    ShortMatrixInputFormat inputFormat = new ShortMatrixInputFormat();
+    inputFormat.setBigEndian(true);
+    inputFormat.setGlobalColumnCount(config.numberDataPoints);
+    inputFormat.setGlobalRowCount(config.numberDataPoints);
+
+    return env.readFile(inputFormat, config.weightMatrixFile);
+  }
+
   public DataSet<ShortMatrixBlock> loadMatrixBlockTest() {
     List<ShortMatrixBlock> matrixBlockList = new ArrayList<ShortMatrixBlock>();
     int blocks = 2;

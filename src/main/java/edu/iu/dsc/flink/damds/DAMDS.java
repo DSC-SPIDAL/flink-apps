@@ -33,12 +33,13 @@ public class DAMDS {
 
     // read the distances partitioned
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
+    DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     // now load the points
     DataSet<Matrix> prex = loader.loadInitPointDataSet();
     // generate vArray
-    DataSet<Matrix> vArray = VArray.generateVArray(distances, parameters);
+    DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distances, weights, parameters);
     vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
