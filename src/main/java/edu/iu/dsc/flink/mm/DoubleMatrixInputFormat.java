@@ -45,7 +45,7 @@ public class DoubleMatrixInputFormat extends MatrixInputFormat<DoubleMatrixBlock
 
     isRead = true;
     block.setData(reuse);
-    LOG.info("Block print: " + splitIndex + "->" + block.toString());
+    // LOG.info("Block print: " + splitIndex + "->" + block.toString());
     return block;
   }
 }

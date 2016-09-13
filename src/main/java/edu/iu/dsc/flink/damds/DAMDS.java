@@ -53,7 +53,7 @@ public class DAMDS {
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distances);
     bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
-    DataSet<Tuple2<Matrix, Matrix>> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
+    DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
     // DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
     //DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
@@ -61,13 +61,7 @@ public class DAMDS {
 
     // todo close temperature loop
 //    tempLoop.closeWith(tCur);
-    DataSet<Matrix> finalPrex = newPrex.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Matrix>() {
-      @Override
-      public Matrix map(Tuple2<Matrix, Matrix> matrixMatrixTuple2) throws Exception {
-        return matrixMatrixTuple2.f0;
-      }
-    });
-    finalPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
+    newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
   }
 
   public DataSet<Boolean> streeDiff(DataSet<Double> preStree, DataSet<Double> postStress, Configuration parameters) {

@@ -45,7 +45,7 @@ public class ShortMatrixInputFormat extends MatrixInputFormat<ShortMatrixBlock> 
 
     isRead = true;
     block.setData(reuse);
-    LOG.info("Block print: " + splitIndex + "->" + block.toString());
+    // LOG.info("Block print: " + splitIndex + "->" + block.toString());
     return block;
   }
 }
