@@ -1,6 +1,5 @@
 package edu.iu.dsc.flink.damds;
 
-import akka.remote.RemoteWatcher;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
@@ -84,10 +83,10 @@ public class CG {
         Matrix mmapMatrix = mmapList.get(0);
         writeToFile("mmap", mmapMatrix.toString());
 
-        double []prex = prexMatrix.getData();
-        double []bc = bcMatrix.getData();
-        double []mmr = mmrMatrix.getData();
-        double []mmap = mmapMatrix.getData();
+        double[] prex = prexMatrix.getData();
+        double[] bc = bcMatrix.getData();
+        double[] mmr = mmrMatrix.getData();
+        double[] mmap = mmapMatrix.getData();
 
         double rtr = (double) mmrMatrix.getProperties().get("rTr");
         double innerProduct = innerProductCalculation(bc, mmap);
@@ -98,10 +97,10 @@ public class CG {
         int iOffset;
         int numPoints = prexMatrix.getRows();
         int targetDimension = prexMatrix.getCols();
-        for(int i = 0; i < numPoints; ++i) {
+        for (int i = 0; i < numPoints; ++i) {
           iOffset = i * targetDimension;
           for (int j = 0; j < targetDimension; ++j) {
-            prex[iOffset+j] += alpha * bc[iOffset+j];
+            prex[iOffset + j] += alpha * bc[iOffset + j];
           }
         }
 
@@ -111,10 +110,10 @@ public class CG {
         }
 
         //update ri to ri+1
-        for(int i = 0; i < numPoints; ++i) {
+        for (int i = 0; i < numPoints; ++i) {
           iOffset = i * targetDimension;
           for (int j = 0; j < targetDimension; ++j) {
-            mmr[iOffset+j] -= alpha * mmap[iOffset+j];
+            mmr[iOffset + j] -= alpha * mmap[iOffset + j];
           }
         }
 
@@ -124,10 +123,10 @@ public class CG {
         System.out.println("############################## beta: " + beta);
         mmrMatrix.addProperty("rTr", rtr1);
         //update pi to pi+1
-        for(int i = 0; i < numPoints; ++i) {
+        for (int i = 0; i < numPoints; ++i) {
           iOffset = i * targetDimension;
           for (int j = 0; j < targetDimension; ++j) {
-            bc[iOffset+j] = mmr[iOffset+j] + beta * bc[iOffset+j];
+            bc[iOffset + j] = mmr[iOffset + j] + beta * bc[iOffset + j];
           }
         }
 
@@ -137,14 +136,15 @@ public class CG {
     }).withBroadcastSet(MMap, "mmap");
 
     // done with BC iterations
-    DataSet<Tuple3<Matrix, Matrix, Matrix>> finalBC = prexbcloop.closeWith(newLoop, newLoop.filter(new FilterFunction<Tuple3<Matrix, Matrix, Matrix>>() {
-      @Override
-      public boolean filter(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
-        Matrix mmrMatrix = loop.f2;
-        boolean aBreak = (boolean) mmrMatrix.getProperties().get("break");
-        return !aBreak;
-      }
-    }));
+    DataSet<Tuple3<Matrix, Matrix, Matrix>> finalBC = prexbcloop.closeWith(newLoop,
+        newLoop.filter(new FilterFunction<Tuple3<Matrix, Matrix, Matrix>>() {
+          @Override
+          public boolean filter(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
+            Matrix mmrMatrix = loop.f2;
+            boolean aBreak = (boolean) mmrMatrix.getProperties().get("break");
+            return !aBreak;
+          }
+        }));
     DataSet<Matrix> prex = finalBC.map(new RichMapFunction<Tuple3<Matrix, Matrix, Matrix>, Matrix>() {
       @Override
       public Matrix map(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
@@ -189,15 +189,16 @@ public class CG {
     return ab;
   }
 
-  public static DataSet<Double> bcInnerProductCalculation(DataSet<Tuple3<Matrix, Matrix, Matrix>> aM, DataSet<Matrix> bM) {
+  public static DataSet<Double> bcInnerProductCalculation(DataSet<Tuple3<Matrix, Matrix, Matrix>> aM,
+                                                          DataSet<Matrix> bM) {
     DataSet<Double> d = aM.map(new RichMapFunction<Tuple3<Matrix, Matrix, Matrix>, Double>() {
       @Override
       public Double map(Tuple3<Matrix, Matrix, Matrix> matrix) throws Exception {
-        double []a = matrix.f1.getData();
+        double[] a = matrix.f1.getData();
         List<Matrix> bMatrixList = getRuntimeContext().getBroadcastVariable("b");
         double rtr = (double) matrix.f2.getProperties().get("rTr");
         Matrix bMatrix = bMatrixList.get(0);
-        double []b = bMatrix.getData();
+        double[] b = bMatrix.getData();
         double sum = 0;
         if (a.length > 0) {
           for (int i = 0; i < a.length; ++i) {
@@ -221,7 +222,7 @@ public class CG {
   }
 
   private static Double InnerProductMatrix(Matrix matrix) {
-    double []a = matrix.getData();
+    double[] a = matrix.getData();
     double sum = 0.0;
     if (a.length > 0) {
       for (double anA : a) {
@@ -233,20 +234,22 @@ public class CG {
   }
 
   private static void calculateMMRBC(Matrix MMR, Matrix BCM) {
-    double []bcData = BCM.getData();
-    double []mmrData = MMR.getData();
+    double[] bcData = BCM.getData();
+    double[] mmrData = MMR.getData();
 
     int iOffset;
-    for(int i = 0; i < MMR.getRows(); ++i) {
+    for (int i = 0; i < MMR.getRows(); ++i) {
       iOffset = i * MMR.getCols();
       for (int j = 0; j < MMR.getCols(); ++j) {
-        bcData[iOffset+j] -= mmrData[iOffset+j];
-        mmrData[iOffset+j] = bcData[iOffset+j];
+        bcData[iOffset + j] -= mmrData[iOffset + j];
+        mmrData[iOffset + j] = bcData[iOffset + j];
       }
     }
   }
 
-  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A, DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray, Configuration parameters) {
+  private static DataSet<Matrix> calculateMM(DataSet<Matrix> A,
+                                             DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray,
+                                             Configuration parameters) {
     DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       int targetDimension;
       int globalCols;
@@ -267,43 +270,45 @@ public class CG {
         ShortMatrixBlock weightBlock = tuple.f1;
         // todo figure out the weights
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weightBlock.getData(), null, false, globalCols);
-        double []outMM = new double[matrx.getRows() * targetDimension];
+        double[] outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D,
+            32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
       }
-    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
-      @Override
-      public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
-        Map<Integer, Tuple2<Integer, Matrix>> tempMap = new HashMap<>();
-        // gather the reduce
-        int rows = 0;
-        int cols = 0;
-        List<Integer> indexes = new ArrayList<Integer>();
-        for (Tuple2<Integer, Matrix> t : iterable) {
-          tempMap.put(t.f0, t);
-          rows += t.f1.getRows();
-          cols = t.f1.getCols();
-          indexes.add(t.f0);
-        }
-        int cellCount = 0;
-        double[] vals = new double[rows * cols];
-        for (int j = 0; j < tempMap.size(); j++) {
-          Tuple2<Integer, Matrix> t = tempMap.get(j);
-          if (t == null) {
-            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
-            throw new RuntimeException("Missing matrix part: " + j);
+    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(
+        new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+          @Override
+          public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
+            Map<Integer, Tuple2<Integer, Matrix>> tempMap = new HashMap<>();
+            // gather the reduce
+            int rows = 0;
+            int cols = 0;
+            List<Integer> indexes = new ArrayList<Integer>();
+            for (Tuple2<Integer, Matrix> t : iterable) {
+              tempMap.put(t.f0, t);
+              rows += t.f1.getRows();
+              cols = t.f1.getCols();
+              indexes.add(t.f0);
+            }
+            int cellCount = 0;
+            double[] vals = new double[rows * cols];
+            for (int j = 0; j < tempMap.size(); j++) {
+              Tuple2<Integer, Matrix> t = tempMap.get(j);
+              if (t == null) {
+                System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+                throw new RuntimeException("Missing matrix part: " + j);
+              }
+              System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
+              System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
+              cellCount += t.f1.getData().length;
+            }
+            Matrix retMatrix = new Matrix(vals, rows, cols, false);
+            collector.collect(retMatrix);
           }
-          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
-          System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
-          cellCount += t.f1.getData().length;
-        }
-        Matrix retMatrix = new Matrix(vals, rows, cols, false);
-        collector.collect(retMatrix);
-      }
-    });
+        });
     return out;
   }
 
@@ -327,7 +332,7 @@ public class CG {
         Matrix matrx = tuple.f0;
         ShortMatrixBlock weightBlock = tuple.f1;
         WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weightBlock.getData(), null, false, globalCols);
-        double []outMM = new double[matrx.getRows() * targetDimension];
+        double[] outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
         calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
