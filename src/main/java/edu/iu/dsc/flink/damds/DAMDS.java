@@ -5,22 +5,54 @@ import edu.iu.dsc.flink.damds.configuration.ConfigurationMgr;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
+import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
+import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
+
+import javax.xml.crypto.Data;
+import java.io.Serializable;
 import java.util.List;
 
 
-public class DAMDS {
-  private final DataLoader loader;
+public class DAMDS implements Serializable {
+  private DataLoader loader;
 
-  public final DAMDSSection config;
+  public DAMDSSection config;
 
-  public final ExecutionEnvironment env;
+  public ExecutionEnvironment env;
+
+  public DataLoader getLoader() {
+    return loader;
+  }
+
+  public DAMDSSection getConfig() {
+    return config;
+  }
+
+  public ExecutionEnvironment getEnv() {
+    return env;
+  }
+
+  public void setLoader(DataLoader loader) {
+    this.loader = loader;
+  }
+
+  public void setConfig(DAMDSSection config) {
+    this.config = config;
+  }
+
+  public void setEnv(ExecutionEnvironment env) {
+    this.env = env;
+  }
+
+  public DAMDS() {
+  }
 
   public DAMDS(DAMDSSection config, ExecutionEnvironment env) {
     this.env = env;
@@ -38,8 +70,9 @@ public class DAMDS {
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     // now load the points
     DataSet<Matrix> prex = loader.loadInitPointDataSet();
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
     // generate vArray
-    DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distances, weights, parameters);
+    DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distanceWeights, parameters);
     vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
@@ -52,7 +85,7 @@ public class DAMDS {
 //    IterativeDataSet<Matrix> stressLoop = prex.iterate(config.maxtemploops);
     // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
-    DataSet<Matrix> bc = BC.calculate(prex, distances);
+    DataSet<Matrix> bc = BC.calculate(prex, distanceWeights);
     bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress

@@ -1,6 +1,7 @@
 package edu.iu.dsc.flink.damds;
 
 import edu.indiana.soic.spidal.common.MatrixUtils;
+import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
@@ -14,24 +15,28 @@ import java.util.List;
 import java.util.TreeSet;
 
 public class BC {
-  public static DataSet<Matrix> calculate(DataSet<Matrix> prex, DataSet<ShortMatrixBlock> distances) {
-    DataSet<Matrix> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Matrix>>() {
+  public static DataSet<Matrix> calculate(DataSet<Matrix> prex,
+                                          DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distancesWeights) {
+    DataSet<Matrix> dataSet = distancesWeights.map(new RichMapFunction<Tuple2<ShortMatrixBlock, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       @Override
-      public Tuple2<Integer, Matrix> map(ShortMatrixBlock sMB) throws Exception {
+      public Tuple2<Integer, Matrix> map(Tuple2<ShortMatrixBlock, ShortMatrixBlock> tuple) throws Exception {
         System.out.println("BC calculate ************");
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
+        ShortMatrixBlock distanceBlock = tuple.f0;
+        ShortMatrixBlock weightBlock = tuple.f1;
         Matrix prexMatrix = matrix.get(0);
         double tCur = (double) prexMatrix.getProperties().get("tCur");
-        double[][] internalBofZ = new double[sMB.getBlockRows()][];
-        for (int i = 0; i < sMB.getBlockRows(); i++) {
-          internalBofZ[i] = new double[sMB.getMatrixCols()];
+        double[][] internalBofZ = new double[distanceBlock.getBlockRows()][];
+        for (int i = 0; i < distanceBlock.getBlockRows(); i++) {
+          internalBofZ[i] = new double[distanceBlock.getMatrixCols()];
         }
-        double[] threadPartialBCInternalMM = new double[prexMatrix.getCols() * sMB.getBlockRows()];
-        calculateBCInternal(prexMatrix.getData(), prexMatrix.getCols(), tCur, sMB.getData(), sMB.getBlockRows(),
-            internalBofZ, threadPartialBCInternalMM, sMB.getBlockRows(), sMB.getStart(), sMB.getMatrixCols());
+        double[] threadPartialBCInternalMM = new double[prexMatrix.getCols() * distanceBlock.getBlockRows()];
+        WeightsWrap1D weights = new WeightsWrap1D(weightBlock.getData(), null, false, weightBlock.getMatrixCols());
+        calculateBCInternal(prexMatrix.getData(), prexMatrix.getCols(), tCur, distanceBlock.getData(), distanceBlock.getBlockRows(),
+            internalBofZ, threadPartialBCInternalMM, distanceBlock.getBlockRows(), distanceBlock.getStart(), distanceBlock.getMatrixCols(), weights);
 
-        Matrix retMatrix = new Matrix(threadPartialBCInternalMM, sMB.getBlockRows(), prexMatrix.getCols(), false);
-        return new Tuple2<Integer, Matrix>(sMB.getIndex(), retMatrix);
+        Matrix retMatrix = new Matrix(threadPartialBCInternalMM, distanceBlock.getBlockRows(), prexMatrix.getCols(), false);
+        return new Tuple2<Integer, Matrix>(distanceBlock.getIndex(), retMatrix);
       }
     }).withBroadcastSet(prex, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
       @Override
@@ -67,10 +72,10 @@ public class BC {
   private static void calculateBCInternal(
       double[] preX, int targetDimension, double tCur,
       short[] distances, int blockSize,
-      double[][] internalBofZ, double[] outMM, int blockRowCount, int rowStartIndex, int globalColCount) {
+      double[][] internalBofZ, double[] outMM, int blockRowCount, int rowStartIndex, int globalColCount, WeightsWrap1D weightsWrap1D) {
 
     calculateBofZ(preX, targetDimension, tCur,
-        distances, internalBofZ, blockRowCount, rowStartIndex, globalColCount);
+        distances, internalBofZ, blockRowCount, rowStartIndex, globalColCount, weightsWrap1D);
 
     // Next we can calculate the BofZ * preX.
     MatrixUtils.matrixMultiply(internalBofZ, preX,
@@ -80,7 +85,7 @@ public class BC {
 
   private static void calculateBofZ(
       double[] preX, int targetDimension, double tCur, short[] distances,
-      double[][] outBofZ, int blockRowCount, int rowStartIndex, int globalColCount) {
+      double[][] outBofZ, int blockRowCount, int rowStartIndex, int globalColCount, WeightsWrap1D weights) {
 
     double vBlockValue = -1;
     double[] outBofZLocalRow;
@@ -112,7 +117,7 @@ public class BC {
         if (globalRow == globalCol) continue;
 
         origD = distances[procLocalRow * globalColCount + globalCol] * DAMDSUtils.INV_SHORT_MAX;
-        weight = 1;
+        weight = weights.getWeight(procLocalRow, globalCol);
         if (origD < 0 || weight == 0) {
           continue;
         }

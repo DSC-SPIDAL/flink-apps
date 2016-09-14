@@ -26,47 +26,39 @@ public class CG {
                                                            Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
     MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
-    DataSet<Matrix> newBC = MMr.map(new RichMapFunction<Matrix, Matrix>() {
+    DataSet<Tuple2<Matrix, Matrix>> newBC = MMr.map(new RichMapFunction<Matrix, Tuple2<Matrix, Matrix>>() {
       @Override
-      public Matrix map(Matrix MMR) throws Exception {
+      public Tuple2<Matrix, Matrix> map(Matrix MMR) throws Exception {
         List<Matrix> bcMatrix = getRuntimeContext().getBroadcastVariable("bc");
         Matrix BCM = bcMatrix.get(0);
 
         calculateMMRBC(MMR, BCM);
-        return BCM;
-      }
-    }).withBroadcastSet(BC, "bc");
 
-    DataSet<Matrix> MMr_1 = MMr.map(new RichMapFunction<Matrix, Matrix>() {
-      @Override
-      public Matrix map(Matrix MMR) throws Exception {
-        List<Matrix> bcMatrix = getRuntimeContext().getBroadcastVariable("bc");
-        Matrix BCM = bcMatrix.get(0);
-
-        calculateMMRBC(MMR, BCM);
         double rTr = InnerProductMatrix(MMR);
         System.out.println("###########################  init rTr: " + rTr);
         MMR.addProperty("rTr", rTr);
         MMR.addProperty("testEnd", rTr * 0.00001);
         MMR.addProperty("break", false);
-        return MMR;
+
+        writeToFile("mmr1", MMR.toString());
+        writeToFile("bc2", BCM.toString());
+        return new Tuple2<Matrix, Matrix>(BCM, MMR);
       }
     }).withBroadcastSet(BC, "bc");
 
-    MMr_1.writeAsText("mmr1", FileSystem.WriteMode.OVERWRITE);
-    newBC.writeAsText("bc2", FileSystem.WriteMode.OVERWRITE);
+//    newBC.writeAsText("bc2", FileSystem.WriteMode.OVERWRITE);
 
     // now compbine prex and bc because flink cannot loop over bc and return prex
-    DataSet<Tuple3<Matrix, Matrix, Matrix>> prexbc = newBC.map(new RichMapFunction<Matrix, Tuple3<Matrix, Matrix, Matrix>>() {
+    DataSet<Tuple3<Matrix, Matrix, Matrix>> prexbc = newBC.map(new RichMapFunction<Tuple2<Matrix, Matrix>, Tuple3<Matrix, Matrix, Matrix>>() {
       @Override
-      public Tuple3<Matrix, Matrix, Matrix> map(Matrix bcMatrix) throws Exception {
+      public Tuple3<Matrix, Matrix, Matrix> map(Tuple2<Matrix, Matrix> tuple) throws Exception {
+        Matrix bcMatrix = tuple.f0;
         List<Matrix> prexMatrixList = getRuntimeContext().getBroadcastVariable("prex");
-        List<Matrix> mmrMatrixList = getRuntimeContext().getBroadcastVariable("mmr");
         Matrix prexMatrix = prexMatrixList.get(0);
-        Matrix mmrMatrix = mmrMatrixList.get(0);
+        Matrix mmrMatrix = tuple.f1;
         return new Tuple3<Matrix, Matrix, Matrix>(prexMatrix, bcMatrix, mmrMatrix);
       }
-    }).withBroadcastSet(preX, "prex").withBroadcastSet(MMr_1, "mmr");
+    }).withBroadcastSet(preX, "prex");
 
     // now loop
     IterativeDataSet<Tuple3<Matrix, Matrix, Matrix>> prexbcloop = prexbc.iterate(cgIter);
