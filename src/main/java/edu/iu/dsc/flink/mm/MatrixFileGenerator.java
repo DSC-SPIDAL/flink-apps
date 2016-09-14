@@ -39,8 +39,8 @@ public class MatrixFileGenerator {
 //      data[i] = Math.random();
 //    }
     // writeMatrixFile(n, m, data, true, fileName);
-//    writeShortMatrixFile(n, m, true, fileName);
-    writePointsFile(n, m, fileName);
+    writeShortMatrixFile(n, m, true, fileName);
+//    writePointsFile(n, m, fileName);
   }
 
   public static void writeMatrixFile(

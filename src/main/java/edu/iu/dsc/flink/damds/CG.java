@@ -325,7 +325,7 @@ public class CG {
         Matrix preXM = prex.get(0).f1;
         Matrix matrx = tuple.f0;
         ShortMatrixBlock weightBlock = tuple.f1;
-        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, globalCols);
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weightBlock.getData(), null, false, globalCols);
         double []outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
