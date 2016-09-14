@@ -16,7 +16,24 @@ public class VArray {
   public static DataSet<Tuple2<Matrix, ShortMatrixBlock>> generateVArray(DataSet<ShortMatrixBlock> distancesBlock,
                                                                          DataSet<ShortMatrixBlock> weightBlock,
                                                                          Configuration parameters) {
-    DataSet<Matrix> dataSet = distancesBlock.map(new RichMapFunction<ShortMatrixBlock, Matrix>() {
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> joinset = distancesBlock.join(weightBlock).where(new KeySelector<ShortMatrixBlock, Integer>() {
+      @Override
+      public Integer getKey(ShortMatrixBlock matrix) throws Exception {
+        return matrix.getIndex();
+      }
+    }).equalTo(new KeySelector<ShortMatrixBlock, Integer>() {
+      @Override
+      public Integer getKey(ShortMatrixBlock shortMatrixBlock) throws Exception {
+        return shortMatrixBlock.getIndex();
+      }
+    }).with(new JoinFunction<ShortMatrixBlock, ShortMatrixBlock, Tuple2<ShortMatrixBlock, ShortMatrixBlock>>() {
+      @Override
+      public Tuple2<ShortMatrixBlock, ShortMatrixBlock> join(ShortMatrixBlock matrix, ShortMatrixBlock shortMatrixBlock) throws Exception {
+        return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(matrix, shortMatrixBlock);
+      }
+    });
+
+    DataSet<Tuple2<Matrix, ShortMatrixBlock>> dataSet = joinset.map(new RichMapFunction<Tuple2<ShortMatrixBlock, ShortMatrixBlock>, Tuple2<Matrix, ShortMatrixBlock>>() {
       int targetDimention;
       @Override
       public void open(Configuration parameters) throws Exception {
@@ -25,38 +42,24 @@ public class VArray {
       }
 
       @Override
-      public Matrix map(ShortMatrixBlock shortMatrixBlock) throws Exception {
-        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(null, null, false, 0);
-        short[] distances = shortMatrixBlock.getData();
-        double[] vArray = new double[shortMatrixBlock.getBlockRows()];
+      public Tuple2<Matrix, ShortMatrixBlock> map(Tuple2<ShortMatrixBlock, ShortMatrixBlock> shortMatrixBlock) throws Exception {
+        ShortMatrixBlock weights = shortMatrixBlock.f1;
+        ShortMatrixBlock distanceMatrixBlock = shortMatrixBlock.f0;
+
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weights.getData(), null, false, weights.getMatrixCols());
+        short[] distances = distanceMatrixBlock.getData();
+        double[] vArray = new double[distanceMatrixBlock.getBlockRows()];
         generateVArrayInternal(distances, weightsWrap1D, vArray,
-            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(),
-            shortMatrixBlock.getMatrixCols());
-        Matrix m = new Matrix(vArray, shortMatrixBlock.getBlockRows(), 1,
-            shortMatrixBlock.getIndex(), false);
-        m.setStartIndex(shortMatrixBlock.getStart());
-        return m;
+            distanceMatrixBlock.getBlockRows(), distanceMatrixBlock.getStart(),
+            distanceMatrixBlock.getMatrixCols());
+        Matrix m = new Matrix(vArray, distanceMatrixBlock.getBlockRows(), 1,
+            distanceMatrixBlock.getIndex(), false);
+        m.setStartIndex(distanceMatrixBlock.getStart());
+        return new Tuple2<Matrix, ShortMatrixBlock>(m, weights);
       }
     }).withParameters(parameters);
 
-    DataSet<Tuple2<Matrix, ShortMatrixBlock>> joinset = dataSet.join(weightBlock).where(new KeySelector<Matrix, Integer>() {
-      @Override
-      public Integer getKey(Matrix matrix) throws Exception {
-        return matrix.getIndex();
-      }
-    }).equalTo(new KeySelector<ShortMatrixBlock, Integer>() {
-      @Override
-      public Integer getKey(ShortMatrixBlock shortMatrixBlock) throws Exception {
-        return shortMatrixBlock.getIndex();
-      }
-    }).with(new JoinFunction<Matrix, ShortMatrixBlock, Tuple2<Matrix, ShortMatrixBlock>>() {
-      @Override
-      public Tuple2<Matrix, ShortMatrixBlock> join(Matrix matrix, ShortMatrixBlock shortMatrixBlock) throws Exception {
-        return new Tuple2<Matrix, ShortMatrixBlock>(matrix, shortMatrixBlock);
-      }
-    });
-
-    return joinset;
+    return dataSet;
   }
 
   private static void generateVArrayInternal(

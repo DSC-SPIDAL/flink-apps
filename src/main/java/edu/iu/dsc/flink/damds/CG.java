@@ -5,7 +5,6 @@ import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
-import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
@@ -17,7 +16,6 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
-import org.apache.zookeeper.KeeperException;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
@@ -143,7 +141,8 @@ public class CG {
       @Override
       public boolean filter(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {
         Matrix mmrMatrix = loop.f2;
-        return (boolean) mmrMatrix.getProperties().get("break");
+        boolean aBreak = (boolean) mmrMatrix.getProperties().get("break");
+        return !aBreak;
       }
     }));
     DataSet<Matrix> prex = finalBC.map(new RichMapFunction<Tuple3<Matrix, Matrix, Matrix>, Matrix>() {
