@@ -1,9 +1,11 @@
 package edu.iu.dsc.flink.damds;
 
+import akka.remote.RemoteWatcher;
 import edu.indiana.soic.spidal.common.MatrixUtils;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
+import org.apache.commons.collections.map.HashedMap;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.RichGroupReduceFunction;
@@ -15,12 +17,11 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.util.Comparator;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 
 public class CG {
   public static DataSet<Matrix> calculateConjugateGradient(DataSet<Matrix> preX, DataSet<Matrix> BC,
@@ -277,24 +278,25 @@ public class CG {
     }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
       @Override
       public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
-        TreeSet<Tuple2<Integer, Matrix>> set = new TreeSet<Tuple2<Integer, Matrix>>(new Comparator<Tuple2<Integer, Matrix>>() {
-          @Override
-          public int compare(Tuple2<Integer, Matrix> o1, Tuple2<Integer, Matrix> o2) {
-            return o1.f0.compareTo(o2.f0);
-          }
-        });
-
+        Map<Integer, Tuple2<Integer, Matrix>> tempMap = new HashMap<>();
         // gather the reduce
         int rows = 0;
         int cols = 0;
+        List<Integer> indexes = new ArrayList<Integer>();
         for (Tuple2<Integer, Matrix> t : iterable) {
-          set.add(t);
+          tempMap.put(t.f0, t);
           rows += t.f1.getRows();
           cols = t.f1.getCols();
+          indexes.add(t.f0);
         }
         int cellCount = 0;
         double[] vals = new double[rows * cols];
-        for (Tuple2<Integer, Matrix> t : set) {
+        for (int j = 0; j < tempMap.size(); j++) {
+          Tuple2<Integer, Matrix> t = tempMap.get(j);
+          if (t == null) {
+            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+            throw new RuntimeException("Missing matrix part: " + j);
+          }
           System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
           System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
           cellCount += t.f1.getData().length;
@@ -353,7 +355,13 @@ public class CG {
         }
         int cellCount = 0;
         double[] vals = new double[rows * cols];
+        int previousIndex = -1;
         for (Tuple2<Integer, Matrix> t : set) {
+          if (t.f0 != previousIndex + 1) {
+            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + (previousIndex + 1));
+            throw new RuntimeException("Missing matrix part: " + (previousIndex + 1));
+          }
+          previousIndex++;
           System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
           System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
           cellCount += t.f1.getData().length;
@@ -373,7 +381,7 @@ public class CG {
         .matrixMultiplyWithThreadOffset(weights, vArray, x,
             rowCount, targetDimension,
             numPoints, blockSize,
-            rowStartOffset,
+            0,
             rowStartOffset, outMM);
   }
 }
