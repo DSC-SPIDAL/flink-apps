@@ -15,7 +15,6 @@ import org.apache.flink.core.fs.FileSystem;
 import java.io.Serializable;
 import java.util.List;
 
-
 public class DAMDS implements Serializable {
   private DataLoader loader;
 
@@ -46,21 +45,15 @@ public class DAMDS implements Serializable {
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
 
-    // we need to register a filter to terminate the loop
-//    IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
-//    IterativeDataSet<Matrix> stressLoop = prex.iterate(config.maxtemploops);
     // calculate the initial stress
     DataSet<Double> preStress = Stress.setupWorkFlow(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distanceWeights);
     bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
-    // DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
-    //DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
-//    stressLoop.closeWith(newPrex, terminate);
+    DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
+    DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
 
-    // todo close temperature loop
-//    tempLoop.closeWith(tCur);
     newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
   }
 

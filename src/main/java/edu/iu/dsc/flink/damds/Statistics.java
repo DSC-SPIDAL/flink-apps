@@ -30,12 +30,10 @@ public class Statistics {
       short[] distances, int blockRowCount, int globalColCount) {
     DoubleStatistics stat = new DoubleStatistics();
     int procLocalRow;
-    double origD, weight;
+    double origD;
     for (int localRow = 0; localRow < blockRowCount; ++localRow){
       procLocalRow = localRow;
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
-//        System.out.printf("**** block=%d global=%d localRow=%d index=%d\n", blockRowCount,
-//            globalColCount, procLocalRow, (procLocalRow * globalColCount + globalCol));
         origD = distances[procLocalRow * globalColCount + globalCol] * DAMDSUtils.INV_SHORT_MAX;
         if (origD < 0) {
           // Missing distance

@@ -3,10 +3,8 @@ package edu.iu.dsc.flink.damds;
 import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
-import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
-import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 
@@ -26,7 +24,8 @@ public class VArray {
       }
 
       @Override
-      public Tuple2<Matrix, ShortMatrixBlock> map(Tuple2<ShortMatrixBlock, ShortMatrixBlock> shortMatrixBlock) throws Exception {
+      public Tuple2<Matrix, ShortMatrixBlock> map(Tuple2<ShortMatrixBlock,
+          ShortMatrixBlock> shortMatrixBlock) throws Exception {
         ShortMatrixBlock weights = shortMatrixBlock.f1;
         ShortMatrixBlock distanceMatrixBlock = shortMatrixBlock.f0;
 
