@@ -23,33 +23,6 @@ public class DAMDS implements Serializable {
 
   public ExecutionEnvironment env;
 
-  public DataLoader getLoader() {
-    return loader;
-  }
-
-  public DAMDSSection getConfig() {
-    return config;
-  }
-
-  public ExecutionEnvironment getEnv() {
-    return env;
-  }
-
-  public void setLoader(DataLoader loader) {
-    this.loader = loader;
-  }
-
-  public void setConfig(DAMDSSection config) {
-    this.config = config;
-  }
-
-  public void setEnv(ExecutionEnvironment env) {
-    this.env = env;
-  }
-
-  public DAMDS() {
-  }
-
   public DAMDS(DAMDSSection config, ExecutionEnvironment env) {
     this.env = env;
     this.config = config;
@@ -72,9 +45,6 @@ public class DAMDS implements Serializable {
     vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats);
-
-    // now create tCur, this will be our loop variable
-    DataSet<Double> tCur = createTCur(stats, parameters);
 
     // we need to register a filter to terminate the loop
 //    IterativeDataSet<Double> tempLoop = tCur.iterate(config.maxtemploops);
