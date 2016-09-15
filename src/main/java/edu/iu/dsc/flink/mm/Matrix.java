@@ -126,7 +126,6 @@ public class Matrix implements Serializable {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("");
-    sb.append("Index: ").append(index).append(" Start: ").append(startIndex).append("\n");
     if (columnMajor) {
       for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {

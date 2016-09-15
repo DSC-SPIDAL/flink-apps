@@ -25,7 +25,6 @@ public class DAMDSProgram {
     final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
     DAMDS damds = new DAMDS(config, env);
-    damds.setupWorkFlow();
     damds.execute();
   }
 

@@ -12,7 +12,7 @@ import org.apache.flink.util.Collector;
 import java.util.List;
 
 public class Stress {
-  public static DataSet<Double> setupWorkFlow(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
+  public static DataSet<Double> calculate(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
     DataSet<Double> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Double>>() {
       @Override
       public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {

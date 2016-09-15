@@ -43,6 +43,9 @@ public class DAMDSSection {
       repetitions = Integer.parseInt(getProperty(p, "Repetitions", "1"));
       maxtemploops = Integer.parseInt(getProperty(p, "MaxTempLoops", "0"));
       isSimpleWeights = Boolean.parseBoolean(getProperty(p, "IsSimpleWeights", "false"));
+
+      outFolder = getProperty(p, "OutputFolder", "damds_out");
+      iterationFile = getProperty(p, "IterationFile", "iterations");
     } catch (IOException e) {
       throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
     }
@@ -59,6 +62,9 @@ public class DAMDSSection {
     }
     return val;
   }
+
+  public String outFolder;
+  public String iterationFile;
 
   public String distanceMatrixFile;
   public String weightMatrixFile;

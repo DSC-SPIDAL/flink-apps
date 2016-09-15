@@ -2,9 +2,8 @@ package edu.iu.dsc.flink.damds;
 
 import com.google.common.base.Strings;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
+import edu.iu.dsc.flink.damds.types.Iteration;
 import edu.iu.dsc.flink.mm.*;
-import mpi.MPIException;
-import net.openhft.lang.io.Bytes;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 
@@ -25,6 +24,21 @@ public class DataLoader {
   public DataLoader(ExecutionEnvironment env, DAMDSSection config) {
     this.env = env;
     this.config = config;
+  }
+
+  public Iteration loadIteration() {
+    Path path = Paths.get(config.outFolder, config.iterationFile);
+    try (Scanner scanner = new Scanner(path)) {
+      while (scanner.hasNextLine()) {
+        String line = scanner.nextLine();
+        Iteration iteration = new Iteration();
+        iteration.load(line);
+        return iteration;
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to load iteration file");
+    }
+    return null;
   }
 
   public DataSet<ShortMatrixBlock> loadMatrixBlock() {
