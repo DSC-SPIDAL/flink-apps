@@ -95,13 +95,17 @@ public class DataLoader {
   }
 
   public DataSet<Matrix> loadInitPointDataSet() {
+    return loadInitPointDataSet(config.initialPointsFile);
+  }
+
+  public DataSet<Matrix> loadInitPointDataSet(String pointFile) {
     int n = config.numberDataPoints;
     int m = config.targetDimension;
     Matrix matrixB = new Matrix(n, m, false);
-    Path path = Paths.get(config.initialPointsFile);
+    Path path = Paths.get(pointFile);
     try {
       try (Scanner scanner = new Scanner(path)) {
-        Pattern pattern = Pattern.compile("[\t]");
+        Pattern pattern = Pattern.compile("\\s+");
         double[] preX = new double[n * m];
         int row = 0;
         while (scanner.hasNextLine()) {

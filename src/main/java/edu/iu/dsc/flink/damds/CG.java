@@ -285,6 +285,12 @@ public class CG {
               cols = t.f1.getCols();
               indexes.add(t.f0);
             }
+
+            for (int i : indexes) {
+              System.out.printf("%d ", i);
+            }
+            System.out.println();
+
             int cellCount = 0;
             double[] vals = new double[rows * cols];
             for (int j = 0; j < tempMap.size(); j++) {

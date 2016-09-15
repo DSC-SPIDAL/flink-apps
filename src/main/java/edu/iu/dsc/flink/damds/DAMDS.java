@@ -29,7 +29,7 @@ public class DAMDS implements Serializable {
     this.loader = new DataLoader(env, config);
   }
 
-  public void setupIteration(Iteration iteration, Configuration parameters) {
+  public void setupIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
     DataSet<Iteration> iterationDataSet = env.fromElements(iteration);
     // read the distances partitioned
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
@@ -38,7 +38,7 @@ public class DAMDS implements Serializable {
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     distances = Distances.updateDistances(distances, stats);
     // now load the points
-    DataSet<Matrix> prex = loader.loadInitPointDataSet();
+    DataSet<Matrix> prex = loader.loadInitPointDataSet(initialPointFile);
     DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
     // generate vArray
     DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distanceWeights, parameters);
@@ -98,16 +98,29 @@ public class DAMDS implements Serializable {
     env.execute();
     // now lets load the initial iteration from file system
     Iteration iteration = loader.loadIteration();
+    boolean initLoaded = false;
+    String initFile;
     // first lets read the last iteration results from file system
     while (true) {
       iteration.preStress = config.threshold + 1;
+      iteration.stressItr = 0;
+      iteration.stress = 0;
       while (iteration.preStress - iteration.stress >= config.threshold) {
-        setupIteration(iteration, parameters);
+        // first we load from initial point file. then we use the previous iterations output
+        if (!initLoaded) {
+          initFile = config.initialPointsFile;
+          initLoaded = true;
+        } else {
+          initFile= config.pointsFile;
+        }
+        setupIteration(iteration, parameters, initFile);
         env.execute();
         iteration = loader.loadIteration();
-        System.out.println("Done iteration: " + iteration.stressItr);
+        iteration.stressItr++;
+        System.out.println("************************************* Done iteration: stress=" + iteration.stressItr + " Temp=" + iteration.tItr);
       }
 
+      iteration.tItr++;
       if (iteration.tCur == 0) {
         break;
       }
