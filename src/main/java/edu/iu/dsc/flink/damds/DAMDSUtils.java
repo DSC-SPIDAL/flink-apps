@@ -6,6 +6,7 @@ import java.util.Arrays;
 
 public class DAMDSUtils {
   public static final double INV_SHORT_MAX = 1.0 / Short.MAX_VALUE;
+  public static final double SHORT_MAX = Short.MAX_VALUE;
 
   public static double calculateEuclideanDist(double[] v, int i, int j, int d) {
     double t = 0.0;

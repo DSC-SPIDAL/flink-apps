@@ -36,6 +36,7 @@ public class DAMDS implements Serializable {
     DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
+    distances = Distances.updateDistances(distances, stats);
     // now load the points
     DataSet<Matrix> prex = loader.loadInitPointDataSet();
     DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
@@ -54,7 +55,7 @@ public class DAMDS implements Serializable {
     DataSet<Double> diffStress = Stress.setupWorkFlow(distances, newPrex);
     DataSet<Boolean> terminate = streeDiff(preStress, diffStress, parameters);
 
-    newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE);
+    newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1);
   }
 
   public DataSet<Boolean> streeDiff(DataSet<Double> preStree, DataSet<Double> postStress, Configuration parameters) {
