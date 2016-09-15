@@ -97,7 +97,8 @@ public class DAMDS implements Serializable {
     Configuration parameters = ConfigurationMgr.getConfiguration(config);
     // first load the intial temperaturs etc
     DataSet<Iteration> initialIteration = loadInitialTemperature(parameters);
-    initialIteration.writeAsText(config.outFolder + "/" + config.iterationFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1);
+    initialIteration.writeAsText(config.outFolder + "/" + config.iterationFile,
+        FileSystem.WriteMode.OVERWRITE).setParallelism(1);
     env.execute();
     // now lets load the initial iteration from file system
     Iteration iteration = loader.loadIteration();
@@ -120,7 +121,8 @@ public class DAMDS implements Serializable {
         env.execute();
         iteration = loader.loadIteration();
         iteration.stressItr++;
-        System.out.println("************************************* Done iteration: stress=" + iteration.stressItr + " Temp=" + iteration.tItr);
+        System.out.println("************************************* Done iteration: stress=" +
+            iteration.stressItr + " Temp=" + iteration.tItr);
       }
 
       iteration.tItr++;
@@ -135,7 +137,8 @@ public class DAMDS implements Serializable {
     }
   }
 
-  public DataSet<Iteration> updateIteration(DataSet<Iteration> itr, DataSet<Double> preStress, DataSet<Double> postStress) {
+  public DataSet<Iteration> updateIteration(DataSet<Iteration> itr, DataSet<Double> preStress,
+                                            DataSet<Double> postStress) {
     DataSet<Iteration> update = itr.map(new RichMapFunction<Iteration, Iteration>() {
       @Override
       public Iteration map(Iteration iteration) throws Exception {
@@ -170,7 +173,8 @@ public class DAMDS implements Serializable {
     return thresh;
   }
 
-  public DataSet<Matrix> joinStats(DataSet<Matrix> prex, DataSet<DoubleStatistics> statisticsDataSet, DataSet<Iteration> iteration) {
+  public DataSet<Matrix> joinStats(DataSet<Matrix> prex, DataSet<DoubleStatistics> statisticsDataSet,
+                                   DataSet<Iteration> iteration) {
     DataSet<Matrix> matrixDataSet = prex.map(new RichMapFunction<Matrix, Matrix>() {
       @Override
       public Matrix map(Matrix matrix) throws Exception {

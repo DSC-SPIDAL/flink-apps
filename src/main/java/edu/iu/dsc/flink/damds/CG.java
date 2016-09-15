@@ -323,7 +323,8 @@ public class CG {
     return out;
   }
 
-  private static DataSet<Matrix> calculateMMBC(DataSet<Tuple3<Matrix, Matrix, Matrix>> A, DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray, Configuration parameters) {
+  private static DataSet<Matrix> calculateMMBC(DataSet<Tuple3<Matrix, Matrix, Matrix>> A,
+                                               DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray, Configuration parameters) {
     DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       int targetDimension;
       int globalCols;
@@ -346,11 +347,13 @@ public class CG {
         double[] outMM = new double[matrx.getRows() * targetDimension];
 
         // todo figure out the details of the calculation
-        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
+        calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(),
+            outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
         return new Tuple2<Integer, Matrix>(0, out);
       }
-    }).withBroadcastSet(A, "cgloop").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+    }).withBroadcastSet(A, "cgloop").withParameters(parameters).reduceGroup
+        (new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
       int targetDimension;
       int globalCols;
       @Override

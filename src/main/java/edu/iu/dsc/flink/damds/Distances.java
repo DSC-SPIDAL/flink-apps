@@ -15,7 +15,8 @@ import static edu.iu.dsc.flink.damds.DAMDSUtils.INV_SHORT_MAX;
 import static edu.iu.dsc.flink.damds.DAMDSUtils.SHORT_MAX;
 
 public class Distances {
-  public static DataSet<ShortMatrixBlock> updateDistances(DataSet<ShortMatrixBlock> distances, DataSet<DoubleStatistics> stats) {
+  public static DataSet<ShortMatrixBlock> updateDistances(DataSet<ShortMatrixBlock> distances,
+                                                          DataSet<DoubleStatistics> stats) {
     DataSet<ShortMatrixBlock> updates = distances.map(new RichMapFunction<ShortMatrixBlock, ShortMatrixBlock>() {
       @Override
       public ShortMatrixBlock map(ShortMatrixBlock shortMatrixBlock) throws Exception {
@@ -29,8 +30,10 @@ public class Distances {
     return updates;
   }
 
-  public static DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> calculate(DataSet<ShortMatrixBlock> distances, DataSet<ShortMatrixBlock> weights) {
-    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = distances.join(weights).where(new KeySelector<ShortMatrixBlock, Integer>() {
+  public static DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> calculate(DataSet<ShortMatrixBlock> distances,
+                                                                              DataSet<ShortMatrixBlock> weights) {
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights =
+        distances.join(weights).where(new KeySelector<ShortMatrixBlock, Integer>() {
       @Override
       public Integer getKey(ShortMatrixBlock matrix) throws Exception {
         return matrix.getIndex();
@@ -42,7 +45,8 @@ public class Distances {
       }
     }).with(new JoinFunction<ShortMatrixBlock, ShortMatrixBlock, Tuple2<ShortMatrixBlock, ShortMatrixBlock>>() {
       @Override
-      public Tuple2<ShortMatrixBlock, ShortMatrixBlock> join(ShortMatrixBlock distances, ShortMatrixBlock weights) throws Exception {
+      public Tuple2<ShortMatrixBlock, ShortMatrixBlock> join(ShortMatrixBlock distances,
+                                                             ShortMatrixBlock weights) throws Exception {
         System.out.println("Join distances");
         return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distances, weights);
       }
