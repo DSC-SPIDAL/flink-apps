@@ -242,7 +242,7 @@ public class CG {
   private static DataSet<Matrix> calculateMM(DataSet<Matrix> A,
                                              DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray,
                                              Configuration parameters) {
-    DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
+    DataSet<Matrix> out = vArray.map(new RichMapFunction<Tuple2<Matrix, ShortMatrixBlock>, Matrix>() {
       int targetDimension;
       int globalCols;
 
@@ -254,7 +254,7 @@ public class CG {
       }
 
       @Override
-      public Tuple2<Integer, Matrix> map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
+      public Matrix map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
         System.out.println("Matrix multiply ***************************************");
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
@@ -268,45 +268,58 @@ public class CG {
         calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D,
             32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
-        return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
+        System.out.println("out partial matrix with index=" + out.getIndex() + " size: " + out.getRows());
+        return out;
       }
-    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(
-        new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
-          @Override
-          public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
-            Map<Integer, Tuple2<Integer, Matrix>> tempMap = new HashMap<>();
-            // gather the reduce
-            int rows = 0;
-            int cols = 0;
-            List<Integer> indexes = new ArrayList<Integer>();
-            for (Tuple2<Integer, Matrix> t : iterable) {
-              tempMap.put(t.f0, t);
-              rows += t.f1.getRows();
-              cols = t.f1.getCols();
-              indexes.add(t.f0);
-            }
+    }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Matrix, Matrix>() {
+      int targetDimension;
+      int globalCols;
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        this.targetDimension = parameters.getInteger(Constants.TARGET_DIMENSION, 3);
+        this.globalCols = parameters.getInteger(Constants.GLOBAL_COLS, 0);
+      }
 
-            for (int i : indexes) {
-              System.out.printf("%d ", i);
-            }
-            System.out.println();
+      @Override
+      public void reduce(Iterable<Matrix> iterable, Collector<Matrix> collector) throws Exception {
+        Map<Integer, Matrix> tempMap = new HashMap<>();
+        // gather the reduce
+        int rows = 0;
+        int cols = 0;
+        List<Integer> indexes = new ArrayList<Integer>();
+        for (Matrix t : iterable) {
+          tempMap.put(t.getIndex(), t);
+          rows += t.getRows();
+          cols = t.getCols();
+          indexes.add(t.getIndex());
+        }
 
-            int cellCount = 0;
-            double[] vals = new double[rows * cols];
-            for (int j = 0; j < tempMap.size(); j++) {
-              Tuple2<Integer, Matrix> t = tempMap.get(j);
-              if (t == null) {
-                System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
-                throw new RuntimeException("Missing matrix part: " + j);
-              }
-              System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
-              System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
-              cellCount += t.f1.getData().length;
-            }
-            Matrix retMatrix = new Matrix(vals, rows, cols, false);
-            collector.collect(retMatrix);
+        for (int i : indexes) {
+          System.out.printf("%d ", i);
+        }
+        System.out.println();
+
+        if (rows !=  globalCols) {
+          throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
+        }
+
+        int cellCount = 0;
+        double[] vals = new double[rows * cols];
+        for (int j = 0; j < tempMap.size(); j++) {
+          Matrix t = tempMap.get(j);
+          if (t == null) {
+            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+            throw new RuntimeException("Missing matrix part: " + j);
           }
-        });
+          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.getData().length);
+          System.arraycopy(t.getData(), 0, vals, cellCount, t.getData().length);
+          cellCount += t.getData().length;
+        }
+        Matrix retMatrix = new Matrix(vals, rows, cols, false);
+        collector.collect(retMatrix);
+      }
+    }).withParameters(parameters).setParallelism(1);
     return out;
   }
 
@@ -335,35 +348,49 @@ public class CG {
         // todo figure out the details of the calculation
         calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D, 32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
-        return new Tuple2<Integer, Matrix>(matrx.getIndex(), out);
+        return new Tuple2<Integer, Matrix>(0, out);
       }
     }).withBroadcastSet(A, "cgloop").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Tuple2<Integer, Matrix>, Matrix>() {
+      int targetDimension;
+      int globalCols;
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        this.targetDimension = parameters.getInteger(Constants.TARGET_DIMENSION, 3);
+        this.globalCols = parameters.getInteger(Constants.GLOBAL_COLS, 0);
+      }
+
       @Override
       public void reduce(Iterable<Tuple2<Integer, Matrix>> iterable, Collector<Matrix> collector) throws Exception {
-        TreeSet<Tuple2<Integer, Matrix>> set = new TreeSet<Tuple2<Integer, Matrix>>(new Comparator<Tuple2<Integer, Matrix>>() {
-          @Override
-          public int compare(Tuple2<Integer, Matrix> o1, Tuple2<Integer, Matrix> o2) {
-            return o1.f0.compareTo(o2.f0);
-          }
-        });
-
+        Map<Integer, Tuple2<Integer, Matrix>> tempMap = new HashMap<>();
         // gather the reduce
         int rows = 0;
         int cols = 0;
+        List<Integer> indexes = new ArrayList<Integer>();
         for (Tuple2<Integer, Matrix> t : iterable) {
-          set.add(t);
+          tempMap.put(t.f1.getIndex(), t);
           rows += t.f1.getRows();
           cols = t.f1.getCols();
+          indexes.add(t.f1.getIndex());
         }
+
+        for (int i : indexes) {
+          System.out.printf("%d ", i);
+        }
+        System.out.println();
+
+        if (rows !=  globalCols) {
+          throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
+        }
+
         int cellCount = 0;
         double[] vals = new double[rows * cols];
-        int previousIndex = -1;
-        for (Tuple2<Integer, Matrix> t : set) {
-          if (t.f0 != previousIndex + 1) {
-            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + (previousIndex + 1));
-            throw new RuntimeException("Missing matrix part: " + (previousIndex + 1));
+        for (int j = 0; j < tempMap.size(); j++) {
+          Tuple2<Integer, Matrix> t = tempMap.get(j);
+          if (t == null) {
+            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+            throw new RuntimeException("Missing matrix part: " + j);
           }
-          previousIndex++;
           System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
           System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
           cellCount += t.f1.getData().length;
@@ -371,7 +398,7 @@ public class CG {
         Matrix retMatrix = new Matrix(vals, rows, cols, false);
         collector.collect(retMatrix);
       }
-    });
+    }).withParameters(parameters);
     return out;
   }
 

@@ -47,7 +47,7 @@ public class DataLoader {
     inputFormat.setGlobalColumnCount(config.numberDataPoints);
     inputFormat.setGlobalRowCount(config.numberDataPoints);
 
-    return env.readFile(inputFormat, config.distanceMatrixFile);
+    return env.readFile(inputFormat, config.distanceMatrixFile).setParallelism(4);
   }
 
   public DataSet<ShortMatrixBlock> loadWeightBlock() {
@@ -56,7 +56,7 @@ public class DataLoader {
     inputFormat.setGlobalColumnCount(config.numberDataPoints);
     inputFormat.setGlobalRowCount(config.numberDataPoints);
 
-    return env.readFile(inputFormat, config.weightMatrixFile);
+    return env.readFile(inputFormat, config.weightMatrixFile).setParallelism(4);
   }
 
   public DataSet<ShortMatrixBlock> loadMatrixBlockTest() {

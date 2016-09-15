@@ -22,6 +22,7 @@ public class Distances {
         List<DoubleStatistics> statsList = getRuntimeContext().getBroadcastVariable("stats");
         DoubleStatistics stats = statsList.get(0);
         changeZeroDistancesToPostiveMin(shortMatrixBlock.getData(), stats.getPositiveMin());
+        System.out.println("Update distances");
         return shortMatrixBlock;
       }
     }).withBroadcastSet(stats, "stats");
@@ -42,6 +43,7 @@ public class Distances {
     }).with(new JoinFunction<ShortMatrixBlock, ShortMatrixBlock, Tuple2<ShortMatrixBlock, ShortMatrixBlock>>() {
       @Override
       public Tuple2<ShortMatrixBlock, ShortMatrixBlock> join(ShortMatrixBlock distances, ShortMatrixBlock weights) throws Exception {
+        System.out.println("Join distances");
         return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distances, weights);
       }
     });

@@ -6,6 +6,7 @@ import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import edu.iu.dsc.flink.damds.types.Iteration;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
+import java.io.File;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
@@ -30,6 +31,8 @@ public class DAMDS implements Serializable {
   }
 
   public void setupIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
+    File f = new File("varray");
+    f.delete();
     DataSet<Iteration> iterationDataSet = env.fromElements(iteration);
     // read the distances partitioned
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
