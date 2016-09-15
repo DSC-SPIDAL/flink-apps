@@ -7,7 +7,10 @@ import edu.iu.dsc.flink.damds.types.Iteration;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import java.io.File;
+
+import mpi.DoubleInt;
 import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.functions.RichReduceFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -37,6 +40,11 @@ public class DAMDS implements Serializable {
     // read the distances partitioned
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
     DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
+
+    DataSet<Integer> count = count(distances);
+    count.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
+    count = count(weights);
+    count.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     distances = Distances.updateDistances(distances, stats);
@@ -205,5 +213,20 @@ public class DAMDS implements Serializable {
       }
     });
     return tCur;
+  }
+
+  public DataSet<Integer> count(DataSet<ShortMatrixBlock> distances) {
+    DataSet<Integer> count = distances.map(new RichMapFunction<ShortMatrixBlock, Integer>() {
+      @Override
+      public Integer map(ShortMatrixBlock shortMatrixBlock) throws Exception {
+        return 1;
+      }
+    }).reduce(new RichReduceFunction<Integer>() {
+      @Override
+      public Integer reduce(Integer integer, Integer t1) throws Exception {
+        return integer + t1;
+      }
+    });
+    return count;
   }
 }
