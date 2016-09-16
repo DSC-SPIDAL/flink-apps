@@ -58,6 +58,7 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
     // This uses an input stream, later see how to change to
     // memory maps, will have to change nextRecord() method as well
     super.open(fileSplit);
+    isRead = false;
   }
 
   public boolean isBigEndian() {

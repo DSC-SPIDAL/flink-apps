@@ -8,7 +8,6 @@ import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import java.io.File;
 
-import mpi.DoubleInt;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.functions.RichReduceFunction;
 import org.apache.flink.api.java.DataSet;
@@ -219,6 +218,7 @@ public class DAMDS implements Serializable {
     DataSet<Integer> count = distances.map(new RichMapFunction<ShortMatrixBlock, Integer>() {
       @Override
       public Integer map(ShortMatrixBlock shortMatrixBlock) throws Exception {
+        System.out.println("Parallel tasks for count: " + getRuntimeContext().getNumberOfParallelSubtasks());
         return 1;
       }
     }).reduce(new RichReduceFunction<Integer>() {

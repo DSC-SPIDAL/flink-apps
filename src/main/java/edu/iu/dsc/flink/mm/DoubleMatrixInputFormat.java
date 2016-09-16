@@ -42,7 +42,7 @@ public class DoubleMatrixInputFormat extends MatrixInputFormat<DoubleMatrixBlock
         reuse[i] = ldis.readDouble();
       }
     }
-
+    System.out.println("Next block for split: " + splitIndex);
     isRead = true;
     block.setData(reuse);
     // LOG.info("Block print: " + splitIndex + "->" + block.toString());
