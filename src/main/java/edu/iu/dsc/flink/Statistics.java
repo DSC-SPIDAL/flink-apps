@@ -13,7 +13,7 @@ public class Statistics {
         final ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(4);
         /*DataSet<String> text = env.readTextFile("src/main/resources/sample.txt");
-        System.out.println(text.count());*/
+        System.out.println(text.cgCount());*/
 
 //        String binaryFile = "src/main/resources/sample.bin";
         String binaryFile = args[0];
@@ -21,7 +21,7 @@ public class Statistics {
         sif.setFilePath(binaryFile);
         DataSet<ShortValue> ds = env.createInput(sif,
             ValueTypeInfo.SHORT_VALUE_TYPE_INFO);
-        System.out.println(ds.count());*/
+        System.out.println(ds.cgCount());*/
 
         int globalColCount = Integer.parseInt(args[1]);
         boolean isBigEndian = Boolean.parseBoolean(args[2]);
@@ -33,7 +33,7 @@ public class Statistics {
         smif.setGlobalColumnCount(globalColCount);
         DataSet<Short[]> ds = env.createInput(smif, BasicArrayTypeInfo.SHORT_ARRAY_TYPE_INFO);
 
-//        System.out.println(ds.count());
+//        System.out.println(ds.cgCount());
 
 //        MapOperator<Short[], DoubleStatistics> op = ds.map(arr -> {
         DataSet<DoubleStatistics> op = ds.map(arr -> {
@@ -55,7 +55,7 @@ public class Statistics {
         List<DoubleStatistics>
             result = op.reduce((a, b)-> {a.combine(b); return a;}).collect();
         System.out.println(result.get(0));
-//        System.out.println(op.count());
-//        System.out.println(ds.count());
+//        System.out.println(op.cgCount());
+//        System.out.println(ds.cgCount());
     }
 }

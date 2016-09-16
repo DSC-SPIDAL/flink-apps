@@ -29,6 +29,7 @@ public class ConfigurationMgr {
     configuration.setDouble(Constants.ALPHA, config.alpha);
     configuration.setDouble(Constants.THRESHOLD, config.threshold);
     configuration.setDouble(Constants.TMIN_FACTOR, config.tMinFactor);
+    configuration.setDouble(Constants.CG_THRESHOLD, config.cgErrorThreshold);
     return configuration;
   }
 }

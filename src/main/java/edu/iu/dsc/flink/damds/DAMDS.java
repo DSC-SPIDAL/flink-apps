@@ -6,7 +6,6 @@ import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import edu.iu.dsc.flink.damds.types.Iteration;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
-import java.io.File;
 
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.functions.RichReduceFunction;
@@ -32,7 +31,7 @@ public class DAMDS implements Serializable {
     this.loader = new DataLoader(env, config);
   }
 
-  public void setupIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
+  public void setupInitStressIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
     //File f = new File("varray");
     //f.delete();
     DataSet<Iteration> iterationDataSet = env.fromElements(iteration);
@@ -40,10 +39,39 @@ public class DAMDS implements Serializable {
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
     DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
 
-   // DataSet<Integer> count = count(distances);
-    //count.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
-   // count = count(weights);
-    //count.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
+    // DataSet<Integer> cgCount = cgCount(distances);
+    //cgCount.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
+    // cgCount = cgCount(weights);
+    //cgCount.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
+    // read the distance statistics
+    DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
+    distances = Distances.updateDistances(distances, stats);
+    // now load the points
+    DataSet<Matrix> prex = loader.loadInitPointDataSet(initialPointFile);
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
+    //vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
+    // add tcur and tmax to matrix
+    prex = joinStats(prex, stats, iterationDataSet);
+
+    // calculate the initial stress
+    DataSet<Double> preStress = Stress.calculate(distances, prex);
+    iterationDataSet = updatePreStressIteration(iterationDataSet, preStress);
+    // write the iteration
+    iterationDataSet.writeAsText(config.outFolder + "/" + config.iterationFile, FileSystem.WriteMode.OVERWRITE);
+  }
+
+  public void setupStressIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
+    //File f = new File("varray");
+    //f.delete();
+    DataSet<Iteration> iterationDataSet = env.fromElements(iteration);
+    // read the distances partitioned
+    DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
+    DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
+
+   // DataSet<Integer> cgCount = cgCount(distances);
+    //cgCount.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
+   // cgCount = cgCount(weights);
+    //cgCount.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     distances = Distances.updateDistances(distances, stats);
@@ -57,18 +85,32 @@ public class DAMDS implements Serializable {
     prex = joinStats(prex, stats, iterationDataSet);
 
     // calculate the initial stress
-    DataSet<Double> preStress = Stress.calculate(distances, prex);
+    // DataSet<Double> preStress = Stress.calculate(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distanceWeights);
     //bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
     DataSet<Double> postStress = Stress.calculate(distances, newPrex);
-
-    iterationDataSet = updateIteration(iterationDataSet, preStress, postStress);
+    DataSet<Integer> cgCount = getCGCount(newPrex);
+    iterationDataSet = updatePostStressIteration(iterationDataSet, postStress, cgCount);
     // write the iteration
     iterationDataSet.writeAsText(config.outFolder + "/" + config.iterationFile, FileSystem.WriteMode.OVERWRITE);
     // save the iteration
     newPrex.writeAsText(config.pointsFile, FileSystem.WriteMode.OVERWRITE).setParallelism(1);
+  }
+
+  public DataSet<Integer> getCGCount(DataSet<Matrix> prex) {
+    DataSet<Integer> count = prex.map(new RichMapFunction<Matrix, Integer>() {
+      @Override
+      public Integer map(Matrix matrix) throws Exception {
+        int count = 0;
+        if (matrix.getProperties().get("cgItr") != null) {
+          count = (int) matrix.getProperties().get("cgItr");
+        }
+        return count;
+      }
+    });
+    return count;
   }
 
   public DataSet<Iteration> loadInitialTemperature(Configuration parameters) {
@@ -91,11 +133,13 @@ public class DAMDS implements Serializable {
       @Override
       public Iteration map(DoubleStatistics summery) throws Exception {
         Iteration iteration = new Iteration();
-        iteration.tMin = tMinFactor * summery.getPositiveMin() / Math.sqrt(2.0 * targetDimension);
+        iteration.tMin = .5 * summery.getPositiveMin() / Math.sqrt(2.0 * targetDimension);
         double tMax = summery.getMax() / Math.sqrt(2.0 * targetDimension);
         iteration.tCur = alpha * tMax;
         System.out.println("Initial temperature: " + iteration.tCur);
         System.out.println("Initial temperature min: " + iteration.tMin);
+        System.out.println("Initial temperature max: " + tMax);
+        System.out.println("Positive min: " + summery.getPositiveMin());
         return iteration;
       }
     }).withParameters(parameters);
@@ -115,32 +159,51 @@ public class DAMDS implements Serializable {
     String initFile;
     // first lets read the last iteration results from file system
     while (true) {
-      iteration.preStress = config.threshold + 1;
-      iteration.stressItr = 0;
-      iteration.stress = 0;
-      while (iteration.preStress - iteration.stress >= config.threshold) {
-        // first we load from initial point file. then we use the previous iterations output
+      if (!initLoaded) {
+        initFile = config.initialPointsFile;
+      } else {
+        initFile= config.pointsFile;
+      }
+
+      // calculate the initial stress for this stress iteration
+      setupInitStressIteration(iteration, parameters, initFile);
+      env.execute();
+      iteration = loader.loadIteration();
+
+      double diffStress = config.threshold + 1;
+      int stressIterations = 0;
+      int cgCount = 0;
+      while (diffStress >= config.threshold) {
+        // after we use the initial point file, we will use the output of
+        // the previous iteration as input
         if (!initLoaded) {
           initFile = config.initialPointsFile;
           initLoaded = true;
         } else {
           initFile= config.pointsFile;
         }
-        setupIteration(iteration, parameters, initFile);
+        // first we load from initial point file. then we use the previous iterations output
+        setupStressIteration(iteration, parameters, initFile);
         env.execute();
         iteration = loader.loadIteration();
         iteration.stressItr++;
-        System.out.println("Done iteration: stress = " +
-            iteration.stressItr + " Temp = " + iteration.tItr);
+        diffStress = iteration.preStress - iteration.stress;
+        iteration.preStress = iteration.stress;
+        System.out.printf("Loop %d iteration %d cg count %d stress %f\n", iteration.tItr, stressIterations, iteration.cgCount ,iteration.stress);
+        stressIterations++;
+        cgCount += iteration.cgCount;
       }
 
-      iteration.tItr++;
+      System.out.printf("Done iteration: T iteration=%d stress itrs=%d temp=%f iteration stress= %f average cg=%f \n",
+          iteration.tItr, stressIterations, iteration.tCur, iteration.stress, ((double)cgCount / stressIterations));
+
       if (iteration.tCur == 0) {
         break;
       }
 
+      iteration.tItr++;
       iteration.tCur *= config.alpha;
-      if (iteration.tCur < .01) {
+      if (iteration.tCur < iteration.tMin) {
         iteration.tCur = 0;
       }
     }
@@ -152,9 +215,37 @@ public class DAMDS implements Serializable {
     StringBuilder sb = new StringBuilder();
     sb.append("Temperature: ").append(it.tCur).append("\n");
     sb.append("Stress: ").append(it.stress).append("\n");
-    sb.append("Loop count: ").append(it.tItr).append("\n");
-    sb.append("Stress iteration count: ").append(it.stressItr).append("\n");
+    sb.append("Loop cgCount: ").append(it.tItr).append("\n");
+    sb.append("Stress iteration cgCount: ").append(it.stressItr).append("\n");
     System.out.println(sb.toString());
+  }
+
+  public DataSet<Iteration> updatePreStressIteration(DataSet<Iteration> itr, DataSet<Double> preStress) {
+    DataSet<Iteration> update = itr.map(new RichMapFunction<Iteration, Iteration>() {
+      @Override
+      public Iteration map(Iteration iteration) throws Exception {
+        List<Double> preStressList = getRuntimeContext().getBroadcastVariable("preStress");
+        iteration.preStress = preStressList.get(0);
+        return iteration;
+      }
+    }).withBroadcastSet(preStress, "preStress");
+    return update;
+  }
+
+  public DataSet<Iteration> updatePostStressIteration(DataSet<Iteration> itr,
+                                            DataSet<Double> postStress, DataSet<Integer> count) {
+    DataSet<Iteration> update = itr.map(new RichMapFunction<Iteration, Iteration>() {
+      @Override
+      public Iteration map(Iteration iteration) throws Exception {
+        List<Double> postStressList = getRuntimeContext().getBroadcastVariable("postStress");
+        List<Integer> countList = getRuntimeContext().getBroadcastVariable("cgCount");
+
+        iteration.stress = postStressList.get(0);
+        iteration.cgCount = countList.get(0);
+        return iteration;
+      }
+    }).withBroadcastSet(postStress, "postStress").withBroadcastSet(count, "cgCount");
+    return update;
   }
 
   public DataSet<Iteration> updateIteration(DataSet<Iteration> itr, DataSet<Double> preStress,
@@ -189,7 +280,7 @@ public class DAMDS implements Serializable {
         double diffStress = aDouble - post;
         return diffStress >= threshold;
       }
-    }).withBroadcastSet(postStress, "s").withParameters(parameters);
+    }).withBroadcastSet(postStress, "stat").withParameters(parameters);
     return thresh;
   }
 
@@ -231,7 +322,7 @@ public class DAMDS implements Serializable {
     DataSet<Integer> count = distances.map(new RichMapFunction<ShortMatrixBlock, Integer>() {
       @Override
       public Integer map(ShortMatrixBlock shortMatrixBlock) throws Exception {
-        System.out.println("Parallel tasks for count: " + getRuntimeContext().getNumberOfParallelSubtasks());
+        System.out.println("Parallel tasks for cgCount: " + getRuntimeContext().getNumberOfParallelSubtasks());
         return 1;
       }
     }).reduce(new RichReduceFunction<Integer>() {

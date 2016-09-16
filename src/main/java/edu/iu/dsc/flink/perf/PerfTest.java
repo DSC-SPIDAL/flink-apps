@@ -101,7 +101,7 @@ public class PerfTest {
               collector.collect(new Tuple2<Integer, Point>(index, new Point(x / count, y / count)));
             }
           }).setParallelism(parallel)
-          // count and sum point coordinates for each centroid
+          // cgCount and sum point coordinates for each centroid
           .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
             @Override
             public void reduce(Iterable<Tuple2<Integer, Point>> iterable,

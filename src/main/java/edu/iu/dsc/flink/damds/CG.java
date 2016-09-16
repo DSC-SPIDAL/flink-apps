@@ -13,7 +13,6 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.io.FileNotFoundException;
@@ -27,6 +26,13 @@ public class CG {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
 //    MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
     DataSet<Tuple2<Matrix, Matrix>> newBC = MMr.map(new RichMapFunction<Matrix, Tuple2<Matrix, Matrix>>() {
+      double cgThreshold;
+      @Override
+      public void open(Configuration parameters) throws Exception {
+        super.open(parameters);
+        cgThreshold = parameters.getDouble(Constants.CG_THRESHOLD, 0.00001);
+      }
+
       @Override
       public Tuple2<Matrix, Matrix> map(Matrix MMR) throws Exception {
         List<Matrix> bcMatrix = getRuntimeContext().getBroadcastVariable("bc");
@@ -37,14 +43,14 @@ public class CG {
         double rTr = InnerProductMatrix(MMR);
 //        System.out.println("###########################  init rTr: " + rTr);
         MMR.addProperty("rTr", rTr);
-        MMR.addProperty("testEnd", rTr * 0.00001);
+        MMR.addProperty("testEnd", rTr * cgThreshold);
         MMR.addProperty("break", false);
 
 //        writeToFile("mmr1", MMR.toString());
 //        writeToFile("bc2", BCM.toString());
         return new Tuple2<Matrix, Matrix>(BCM, MMR);
       }
-    }).withBroadcastSet(BC, "bc");
+    }).withBroadcastSet(BC, "bc").withParameters(parameters);
 
 //    newBC.writeAsText("bc2", FileSystem.WriteMode.OVERWRITE);
 
@@ -55,6 +61,7 @@ public class CG {
         Matrix bcMatrix = tuple.f0;
         List<Matrix> prexMatrixList = getRuntimeContext().getBroadcastVariable("prex");
         Matrix prexMatrix = prexMatrixList.get(0);
+        prexMatrix.addProperty("cgItr", 0);
         Matrix mmrMatrix = tuple.f1;
         return new Tuple3<Matrix, Matrix, Matrix>(prexMatrix, bcMatrix, mmrMatrix);
       }
@@ -73,6 +80,9 @@ public class CG {
         Matrix prexMatrix = loop.f0;
         Matrix mmrMatrix = loop.f2;
         Matrix mmapMatrix = mmapList.get(0);
+        int cgCount = (int) prexMatrix.getProperties().get("cgItr");
+        cgCount++;
+        prexMatrix.addProperty("cgItr", cgCount);
         //writeToFile("mmap", mmapMatrix.toString());
 
         double[] prex = prexMatrix.getData();
@@ -137,6 +147,7 @@ public class CG {
             return !aBreak;
           }
         }));
+
     DataSet<Matrix> prex = finalBC.map(new RichMapFunction<Tuple3<Matrix, Matrix, Matrix>, Matrix>() {
       @Override
       public Matrix map(Tuple3<Matrix, Matrix, Matrix> loop) throws Exception {

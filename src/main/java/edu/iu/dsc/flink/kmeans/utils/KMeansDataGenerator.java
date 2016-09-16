@@ -65,7 +65,7 @@ public class KMeansDataGenerator {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-        // check parameter count
+        // check parameter cgCount
         if (args.length < 2) {
             System.out.println("KMeansDataGenerator -points <num> -k <num clusters> [-output <output-path>] [-stddev <relative stddev>] [-range <centroid range>] [-seed <seed>]");
             System.exit(1);
