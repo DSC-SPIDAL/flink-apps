@@ -54,7 +54,7 @@ public class DAMDS implements Serializable {
     prex = joinStats(prex, stats, iterationDataSet);
 
     // calculate the initial stress
-    DataSet<Double> preStress = Stress.calculate(distances, prex);
+    DataSet<Double> preStress = Stress.calculate(distanceWeights, prex);
     iterationDataSet = updatePreStressIteration(iterationDataSet, preStress);
     // write the iteration
     iterationDataSet.writeAsText(config.outFolder + "/" + config.iterationFile, FileSystem.WriteMode.OVERWRITE);
@@ -89,8 +89,8 @@ public class DAMDS implements Serializable {
     DataSet<Matrix> bc = BC.calculate(prex, distanceWeights);
     //bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
-    // now calculate stress
-    DataSet<Double> postStress = Stress.calculate(distances, newPrex);
+    // now calculate stressd
+    DataSet<Double> postStress = Stress.calculate(distanceWeights, newPrex);
     DataSet<Integer> cgCount = getCGCount(newPrex);
     iterationDataSet = updatePostStressIteration(iterationDataSet, postStress, cgCount);
     // write the iteration

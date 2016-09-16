@@ -1,5 +1,6 @@
 package edu.iu.dsc.flink.damds;
 
+import edu.indiana.soic.spidal.common.WeightsWrap1D;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import mpi.MPIException;
@@ -12,16 +13,20 @@ import org.apache.flink.util.Collector;
 import java.util.List;
 
 public class Stress {
-  public static DataSet<Double> calculate(DataSet<ShortMatrixBlock> distances, DataSet<Matrix> prexDataSet) {
-    DataSet<Double> dataSet = distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<Integer, Double>>() {
+  public static DataSet<Double> calculate(DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distances, DataSet<Matrix> prexDataSet) {
+    DataSet<Double> dataSet = distances.map(new RichMapFunction<Tuple2<ShortMatrixBlock, ShortMatrixBlock>, Tuple2<Integer, Double>>() {
       @Override
-      public Tuple2<Integer, Double> map(ShortMatrixBlock shortMatrixBlock) throws Exception {
+      public Tuple2<Integer, Double> map(Tuple2<ShortMatrixBlock, ShortMatrixBlock> tuple) throws Exception {
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         Matrix matrixB = matrix.get(0);
+
+        ShortMatrixBlock distances = tuple.f0;
+        ShortMatrixBlock weights = tuple.f1;
         double tCur = (double) matrixB.getProperties().get("tCur");
         double invs = (double) matrixB.getProperties().get("invs");
-        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), tCur, shortMatrixBlock, invs,
-            shortMatrixBlock.getBlockRows(), shortMatrixBlock.getStart(), shortMatrixBlock.getMatrixCols());
+        WeightsWrap1D weightsWrap1D = new WeightsWrap1D(weights.getData(), null, false, weights.getMatrixCols());
+        double stress = calculateStress(matrixB.getData(), matrixB.getCols(), tCur, distances, invs,
+            distances.getBlockRows(), distances.getStart(), distances.getMatrixCols(), weightsWrap1D);
         return new Tuple2<Integer, Double>(0, stress);
       }
     }).withBroadcastSet(prexDataSet, "prex").reduceGroup(new GroupReduceFunction<Tuple2<Integer,Double>, Double>() {
@@ -39,17 +44,17 @@ public class Stress {
 
   private static double calculateStress(
       double[] preX, int targetDimension, double tCur, ShortMatrixBlock block,
-      double invSumOfSquareDist, int blockRowCount, int rowStartIndex, int globalColCount)
+      double invSumOfSquareDist, int blockRowCount, int rowStartIndex, int globalColCount, WeightsWrap1D weights)
       throws MPIException {
     double stress;
     stress = calculateStressInternal(preX, targetDimension, tCur,
-        block.getData(), blockRowCount, rowStartIndex, globalColCount);
+        block.getData(), blockRowCount, rowStartIndex, globalColCount, weights);
     return stress * invSumOfSquareDist;
   }
 
   private static double calculateStressInternal(double[] preX, int targetDim, double tCur,
                                                 short[] distances, int blockRowCount,
-                                                int rowStartIndex, int globalColCount) {
+                                                int rowStartIndex, int globalColCount, WeightsWrap1D weights) {
 
     double sigma = 0.0;
     double diff = 0.0;
@@ -66,7 +71,7 @@ public class Stress {
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
         origD = distances[procLocalRow * globalColCount + globalCol]
             * DAMDSUtils.INV_SHORT_MAX;
-        weight = 1;
+        weight = weights.getWeight(procLocalRow, globalCol);
         if (origD < 0) {
           continue;
         }
