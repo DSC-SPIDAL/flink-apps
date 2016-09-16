@@ -33,17 +33,17 @@ public class DAMDS implements Serializable {
   }
 
   public void setupIteration(Iteration iteration, Configuration parameters, String initialPointFile) {
-    File f = new File("varray");
-    f.delete();
+    //File f = new File("varray");
+    //f.delete();
     DataSet<Iteration> iterationDataSet = env.fromElements(iteration);
     // read the distances partitioned
     DataSet<ShortMatrixBlock> distances = loader.loadMatrixBlock();
     DataSet<ShortMatrixBlock> weights = loader.loadWeightBlock();
 
-    DataSet<Integer> count = count(distances);
-    count.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
-    count = count(weights);
-    count.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
+   // DataSet<Integer> count = count(distances);
+    //count.writeAsText("distance_count", FileSystem.WriteMode.OVERWRITE);
+   // count = count(weights);
+    //count.writeAsText("weight_count", FileSystem.WriteMode.OVERWRITE);
     // read the distance statistics
     DataSet<DoubleStatistics> stats = Statistics.calculateStatistics(distances);
     distances = Distances.updateDistances(distances, stats);
@@ -52,14 +52,14 @@ public class DAMDS implements Serializable {
     DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
     // generate vArray
     DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distanceWeights, parameters);
-    vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
+    //vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats, iterationDataSet);
 
     // calculate the initial stress
     DataSet<Double> preStress = Stress.calculate(distances, prex);
     DataSet<Matrix> bc = BC.calculate(prex, distanceWeights);
-    bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
+    //bc.writeAsText("bc1.txt", FileSystem.WriteMode.OVERWRITE);
     DataSet<Matrix> newPrex = CG.calculateConjugateGradient(prex, bc, vArray, parameters, config.cgIter);
     // now calculate stress
     DataSet<Double> postStress = Stress.calculate(distances, newPrex);
@@ -94,6 +94,8 @@ public class DAMDS implements Serializable {
         iteration.tMin = tMinFactor * summery.getPositiveMin() / Math.sqrt(2.0 * targetDimension);
         double tMax = summery.getMax() / Math.sqrt(2.0 * targetDimension);
         iteration.tCur = alpha * tMax;
+        System.out.println("Initial temperature: " + iteration.tCur);
+        System.out.println("Initial temperature min: " + iteration.tMin);
         return iteration;
       }
     }).withParameters(parameters);
@@ -128,8 +130,8 @@ public class DAMDS implements Serializable {
         env.execute();
         iteration = loader.loadIteration();
         iteration.stressItr++;
-        System.out.println("************************************* Done iteration: stress=" +
-            iteration.stressItr + " Temp=" + iteration.tItr);
+        System.out.println("Done iteration: stress = " +
+            iteration.stressItr + " Temp = " + iteration.tItr);
       }
 
       iteration.tItr++;
@@ -142,6 +144,17 @@ public class DAMDS implements Serializable {
         iteration.tCur = 0;
       }
     }
+    // print the final details
+    printFinalIteration(iteration);
+  }
+
+  public void printFinalIteration(Iteration it) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Temperature: ").append(it.tCur).append("\n");
+    sb.append("Stress: ").append(it.stress).append("\n");
+    sb.append("Loop count: ").append(it.tItr).append("\n");
+    sb.append("Stress iteration count: ").append(it.stressItr).append("\n");
+    System.out.println(sb.toString());
   }
 
   public DataSet<Iteration> updateIteration(DataSet<Iteration> itr, DataSet<Double> preStress,

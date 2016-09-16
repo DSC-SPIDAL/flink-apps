@@ -14,7 +14,7 @@ public class Statistics {
       public void flatMap(ShortMatrixBlock shortMatrixBlock, Collector<DoubleStatistics> collector) throws Exception {
         DoubleStatistics doubleStatistics = calculateStatisticsInternal(shortMatrixBlock.getData(),
             shortMatrixBlock.getBlockRows(), shortMatrixBlock.getMatrixCols());
-        System.out.println("Calculate stats");
+        //System.out.println("Calculate stats");
         collector.collect(doubleStatistics);
       }
     }).reduce(new ReduceFunction<DoubleStatistics>() {

@@ -25,7 +25,7 @@ public class CG {
                                                            DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray,
                                                            Configuration parameters, int cgIter) {
     DataSet<Matrix> MMr = calculateMM(preX, vArray, parameters);
-    MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
+//    MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
     DataSet<Tuple2<Matrix, Matrix>> newBC = MMr.map(new RichMapFunction<Matrix, Tuple2<Matrix, Matrix>>() {
       @Override
       public Tuple2<Matrix, Matrix> map(Matrix MMR) throws Exception {
@@ -35,13 +35,13 @@ public class CG {
         calculateMMRBC(MMR, BCM);
 
         double rTr = InnerProductMatrix(MMR);
-        System.out.println("###########################  init rTr: " + rTr);
+//        System.out.println("###########################  init rTr: " + rTr);
         MMR.addProperty("rTr", rTr);
         MMR.addProperty("testEnd", rTr * 0.00001);
         MMR.addProperty("break", false);
 
-        writeToFile("mmr1", MMR.toString());
-        writeToFile("bc2", BCM.toString());
+//        writeToFile("mmr1", MMR.toString());
+//        writeToFile("bc2", BCM.toString());
         return new Tuple2<Matrix, Matrix>(BCM, MMR);
       }
     }).withBroadcastSet(BC, "bc");
@@ -73,7 +73,7 @@ public class CG {
         Matrix prexMatrix = loop.f0;
         Matrix mmrMatrix = loop.f2;
         Matrix mmapMatrix = mmapList.get(0);
-        writeToFile("mmap", mmapMatrix.toString());
+        //writeToFile("mmap", mmapMatrix.toString());
 
         double[] prex = prexMatrix.getData();
         double[] bc = bcMatrix.getData();
@@ -82,9 +82,9 @@ public class CG {
 
         double rtr = (double) mmrMatrix.getProperties().get("rTr");
         double innerProduct = innerProductCalculation(bc, mmap);
-        System.out.println("********************* Inner product: " + innerProduct);
+        //System.out.println("********************* Inner product: " + innerProduct);
         double alpha = rtr / innerProduct;
-        System.out.println("********************* Alpha: " + alpha);
+        //System.out.println("********************* Alpha: " + alpha);
         //update Xi to Xi+1
         int iOffset;
         int numPoints = prexMatrix.getRows();
@@ -110,9 +110,9 @@ public class CG {
         }
 
         double rtr1 = InnerProductMatrix(mmrMatrix);
-        System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&& rtr1: " + rtr1);
+        //System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&& rtr1: " + rtr1);
         double beta = rtr1 / rtr;
-        System.out.println("############################## beta: " + beta);
+        //System.out.println("############################## beta: " + beta);
         mmrMatrix.addProperty("rTr", rtr1);
         //update pi to pi+1
         for (int i = 0; i < numPoints; ++i) {
@@ -122,7 +122,7 @@ public class CG {
           }
         }
 
-        writeToFile("point", prexMatrix.toString());
+        //writeToFile("point", prexMatrix.toString());
         return loop;
       }
     }).withBroadcastSet(MMap, "mmap");
@@ -174,7 +174,7 @@ public class CG {
         List<Double> bList = getRuntimeContext().getBroadcastVariable("b");
         double b = bList.get(0);
         double v = aDouble / b;
-        System.out.println("################################ Beta: " + v);
+        //System.out.println("################################ Beta: " + v);
         return v;
       }
     }).withBroadcastSet(b, "b");
@@ -255,7 +255,7 @@ public class CG {
 
       @Override
       public Matrix map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
-        System.out.println("Matrix multiply ***************************************");
+        //System.out.println("Matrix multiply ***************************************");
         List<Matrix> prex = getRuntimeContext().getBroadcastVariable("prex");
         Matrix preXM = prex.get(0);
         Matrix matrx = tuple.f0;
@@ -268,7 +268,7 @@ public class CG {
         calculateMMInternal(preXM.getData(), targetDimension, globalCols, weightsWrap1D,
             32, matrx.getData(), outMM, matrx.getRows(), matrx.getStartIndex());
         Matrix out = new Matrix(outMM, matrx.getRows(), targetDimension, matrx.getIndex(), false);
-        System.out.println("out partial matrix with index=" + out.getIndex() + " size: " + out.getRows());
+        //System.out.println("out partial matrix with index=" + out.getIndex() + " size: " + out.getRows());
         return out;
       }
     }).withBroadcastSet(A, "prex").withParameters(parameters).reduceGroup(new RichGroupReduceFunction<Matrix, Matrix>() {
@@ -295,10 +295,10 @@ public class CG {
           indexes.add(t.getIndex());
         }
 
-        for (int i : indexes) {
-          System.out.printf("%d ", i);
-        }
-        System.out.println();
+//        for (int i : indexes) {
+//          System.out.printf("%d ", i);
+//        }
+//        System.out.println();
 
         if (rows !=  globalCols) {
           throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
@@ -309,10 +309,10 @@ public class CG {
         for (int j = 0; j < tempMap.size(); j++) {
           Matrix t = tempMap.get(j);
           if (t == null) {
-            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+            //System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
             throw new RuntimeException("Missing matrix part: " + j);
           }
-          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.getData().length);
+          //System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.getData().length);
           System.arraycopy(t.getData(), 0, vals, cellCount, t.getData().length);
           cellCount += t.getData().length;
         }
@@ -338,7 +338,7 @@ public class CG {
 
       @Override
       public Tuple2<Integer, Matrix> map(Tuple2<Matrix, ShortMatrixBlock> tuple) throws Exception {
-        System.out.println("Matrix multiply ***************************************");
+        //System.out.println("Matrix multiply ***************************************");
         List<Tuple3<Matrix, Matrix, Matrix>> prex = getRuntimeContext().getBroadcastVariable("cgloop");
         Matrix preXM = prex.get(0).f1;
         Matrix matrx = tuple.f0;
@@ -377,10 +377,10 @@ public class CG {
           indexes.add(t.f1.getIndex());
         }
 
-        for (int i : indexes) {
-          System.out.printf("%d ", i);
-        }
-        System.out.println();
+//        for (int i : indexes) {
+//          System.out.printf("%d ", i);
+//        }
+//        System.out.println();
 
         if (rows !=  globalCols) {
           throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
@@ -391,10 +391,10 @@ public class CG {
         for (int j = 0; j < tempMap.size(); j++) {
           Tuple2<Integer, Matrix> t = tempMap.get(j);
           if (t == null) {
-            System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
+            //System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
             throw new RuntimeException("Missing matrix part: " + j);
           }
-          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
+          //System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
           System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
           cellCount += t.f1.getData().length;
         }

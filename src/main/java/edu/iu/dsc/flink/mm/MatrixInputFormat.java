@@ -44,7 +44,7 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
     }
 
     numSplits = minNumSplits;
-    System.out.println("No of splits: " + numSplits);
+    LOG.info("No of splits: " + numSplits);
     return splits;
   }
 

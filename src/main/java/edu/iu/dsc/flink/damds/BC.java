@@ -20,7 +20,7 @@ public class BC {
     DataSet<Matrix> dataSet = distancesWeights.map(new RichMapFunction<Tuple2<ShortMatrixBlock, ShortMatrixBlock>, Tuple2<Integer, Matrix>>() {
       @Override
       public Tuple2<Integer, Matrix> map(Tuple2<ShortMatrixBlock, ShortMatrixBlock> tuple) throws Exception {
-        System.out.println("BC calculate ************");
+        //System.out.println("BC calculate ************");
         List<Matrix> matrix = getRuntimeContext().getBroadcastVariable("prex");
         ShortMatrixBlock distanceBlock = tuple.f0;
         ShortMatrixBlock weightBlock = tuple.f1;
@@ -58,7 +58,7 @@ public class BC {
         int cellCount = 0;
         double[] vals = new double[rows * cols];
         for (Tuple2<Integer, Matrix> t : set) {
-          System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
+          //System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);
           System.arraycopy(t.f1.getData(), 0, vals, cellCount, t.f1.getData().length);
           cellCount += t.f1.getData().length;
         }

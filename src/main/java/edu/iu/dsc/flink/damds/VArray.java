@@ -38,7 +38,7 @@ public class VArray {
         Matrix m = new Matrix(vArray, distanceMatrixBlock.getBlockRows(), 1,
             distanceMatrixBlock.getIndex(), false);
         m.setStartIndex(distanceMatrixBlock.getStart());
-        System.out.println("Generate varray: " + distanceMatrixBlock.getIndex());
+        //System.out.println("Generate varray: " + distanceMatrixBlock.getIndex());
         return new Tuple2<Matrix, ShortMatrixBlock>(m, weights);
       }
     }).withParameters(parameters);

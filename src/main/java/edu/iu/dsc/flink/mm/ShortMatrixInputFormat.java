@@ -42,7 +42,7 @@ public class ShortMatrixInputFormat extends MatrixInputFormat<ShortMatrixBlock> 
         reuse[i] = ldis.readShort();
       }
     }
-    System.out.println("Next block for split: " + splitIndex);
+    LOG.info("Next block for split: " + splitIndex);
     isRead = true;
     block.setData(reuse);
     // LOG.info("Block print: " + splitIndex + "->" + block.toString());
