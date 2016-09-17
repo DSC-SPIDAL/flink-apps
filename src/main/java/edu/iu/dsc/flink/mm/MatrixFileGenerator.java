@@ -39,7 +39,7 @@ public class MatrixFileGenerator {
 //      data[i] = Math.random();
 //    }
     // writeMatrixFile(n, m, data, true, fileName);
-    writeShortMatrixFile(n, m, true, fileName);
+    writeShortMatrixFile(n, m, true, fileName, 1);
 //    writePointsFile(n, m, fileName);
   }
 
@@ -78,6 +78,25 @@ public class MatrixFileGenerator {
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; j++) {
           pointStream.writeShort(Math.abs(random.nextInt(Short.MAX_VALUE)));
+        }
+      }
+    }
+  }
+
+  public static void writeShortMatrixFile(
+      int n, int m, boolean isBigEndian, String outFile, int constValue)
+      throws IOException {
+    Path pointsFile = Paths.get(outFile);
+    try (
+        BufferedOutputStream pointBufferedStream = new BufferedOutputStream(
+            Files.newOutputStream(pointsFile, StandardOpenOption.CREATE)))
+    {
+      DataOutput pointStream = isBigEndian ? new DataOutputStream(
+          pointBufferedStream) : new LittleEndianDataOutputStream(
+          pointBufferedStream);
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+          pointStream.writeShort(constValue);
         }
       }
     }
