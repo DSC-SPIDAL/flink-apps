@@ -306,11 +306,6 @@ public class CG {
           indexes.add(t.getIndex());
         }
 
-//        for (int i : indexes) {
-//          System.out.printf("%d ", i);
-//        }
-//        System.out.println();
-
         if (rows !=  globalCols) {
           throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
         }
@@ -320,7 +315,6 @@ public class CG {
         for (int j = 0; j < tempMap.size(); j++) {
           Matrix t = tempMap.get(j);
           if (t == null) {
-            //System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
             throw new RuntimeException("Missing matrix part: " + j);
           }
           //System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.getData().length);
@@ -388,11 +382,6 @@ public class CG {
           indexes.add(t.f1.getIndex());
         }
 
-//        for (int i : indexes) {
-//          System.out.printf("%d ", i);
-//        }
-//        System.out.println();
-
         if (rows !=  globalCols) {
           throw new RuntimeException("Failed to gather row != globalCols, rows=" + rows + " globalCols=" + globalCols);
         }
@@ -402,7 +391,6 @@ public class CG {
         for (int j = 0; j < tempMap.size(); j++) {
           Tuple2<Integer, Matrix> t = tempMap.get(j);
           if (t == null) {
-            //System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& Missing matrix part: " + j);
             throw new RuntimeException("Missing matrix part: " + j);
           }
           //System.out.printf("copy vals.size=%d rowCount=%d f1.length=%d\n", rows, cellCount, t.f1.getData().length);

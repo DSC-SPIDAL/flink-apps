@@ -46,6 +46,7 @@ public class DAMDSSection {
 
       outFolder = getProperty(p, "OutputFolder", "damds_out");
       iterationFile = getProperty(p, "IterationFile", "iterations");
+      maxStressLoops = Integer.parseInt(getProperty(p, "MaxStressLoops", "0"));
     } catch (IOException e) {
       throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
     }
@@ -94,6 +95,7 @@ public class DAMDSSection {
 
   public int repetitions;
   public int maxtemploops;
+  public int maxStressLoops;
 
   private String getPadding(int count, String prefix){
     StringBuilder sb = new StringBuilder(prefix);

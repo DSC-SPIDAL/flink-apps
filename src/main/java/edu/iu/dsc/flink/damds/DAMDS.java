@@ -133,7 +133,7 @@ public class DAMDS implements Serializable {
       @Override
       public Iteration map(DoubleStatistics summery) throws Exception {
         Iteration iteration = new Iteration();
-        iteration.tMin = .5 * summery.getPositiveMin() / Math.sqrt(2.0 * targetDimension);
+        iteration.tMin = tMinFactor * summery.getPositiveMin() / Math.sqrt(2.0 * targetDimension);
         double tMax = summery.getMax() / Math.sqrt(2.0 * targetDimension);
         iteration.tCur = alpha * tMax;
         System.out.println("Initial temperature: " + iteration.tCur);
@@ -192,6 +192,10 @@ public class DAMDS implements Serializable {
         System.out.printf("Loop %d iteration %d cg count %d stress %f\n", iteration.tItr, stressIterations, iteration.cgCount ,iteration.stress);
         stressIterations++;
         cgCount += iteration.cgCount;
+        // break for test purposes
+        if (config.maxStressLoops > 0 && stressIterations == config.maxStressLoops){
+          break;
+        }
       }
 
       System.out.printf("Done iteration: T iteration=%d stress itrs=%d temp=%f iteration stress= %f average cg=%f \n",
@@ -205,6 +209,10 @@ public class DAMDS implements Serializable {
       iteration.tCur *= config.alpha;
       if (iteration.tCur < iteration.tMin) {
         iteration.tCur = 0;
+      }
+
+      if (config.maxtemploops > 0 && iteration.tItr == config.maxtemploops){
+        break;
       }
     }
     // print the final details
