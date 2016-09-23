@@ -94,8 +94,14 @@ public class DataLoader {
     return env.fromElements(matrixB);
   }
 
-  public DataSet<Matrix> loadInitPointDataSet() {
-    return loadInitPointDataSet(config.initialPointsFile);
+  public DataSet<Matrix> loadInitPointDataSetFromEnv(String pointFile) {
+    int n = config.numberDataPoints;
+    int m = config.targetDimension;
+    PointInputFormat inputFormat = new PointInputFormat();
+    inputFormat.setRows(n);
+    inputFormat.setCols(m);
+    inputFormat.setSpittable(false);
+    return env.readFile(inputFormat, pointFile);
   }
 
   public DataSet<Matrix> loadInitPointDataSet(String pointFile) {
