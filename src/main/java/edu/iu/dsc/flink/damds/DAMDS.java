@@ -148,6 +148,7 @@ public class DAMDS implements Serializable {
 
   public void execute() throws Exception {
     Configuration parameters = ConfigurationMgr.getConfiguration(config);
+    long startTime = System.currentTimeMillis();
     // first load the intial temperaturs etc
     DataSet<Iteration> initialIteration = loadInitialTemperature(parameters);
     initialIteration.writeAsText(config.outFolder + "/" + config.iterationFile,
@@ -215,8 +216,10 @@ public class DAMDS implements Serializable {
         break;
       }
     }
+    long endTime = System.currentTimeMillis();
     // print the final details
     printFinalIteration(iteration);
+    System.out.println("Time: " + (endTime - startTime));
   }
 
   public void printFinalIteration(Iteration it) {
