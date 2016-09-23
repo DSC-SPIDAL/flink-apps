@@ -284,7 +284,7 @@ under the License.
 							<transformers>
 								<!-- add Main-Class to manifest file -->
 								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>edu.iu.dsc.flink.mm.MatrixMultiply</mainClass>
+									<mainClass>edu.iu.dsc.flink.damds.DAMDSProgram</mainClass>
 								</transformer>
 							</transformers>
 							<createDependencyReducedPom>false</createDependencyReducedPom>
