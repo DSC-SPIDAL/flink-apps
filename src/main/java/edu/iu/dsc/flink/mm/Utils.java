@@ -90,4 +90,10 @@ public class Utils {
     }
     return Optional.fromNullable(null);
   }
+
+  public static Option createOption(String opt, boolean hasArg, String description, boolean required) {
+    Option symbolListOption = new Option(opt, hasArg, description);
+    symbolListOption.setRequired(required);
+    return symbolListOption;
+  }
 }
