@@ -40,18 +40,22 @@ public class DAMDSProgram {
         cmd.getOptionValue(Constants.CMD_OPTION_LONG_C)).damdsSection;
 
     if (cmd.getOptionValue("dFile") != null) {
+      System.out.println("Distance file: " + cmd.getOptionValue("dFile"));
       config.distanceMatrixFile = cmd.getOptionValue("dFile");
     }
 
     if (cmd.getOptionValue("wFile") != null) {
+      System.out.println("weight file: " + cmd.getOptionValue("wFile"));
       config.weightMatrixFile = cmd.getOptionValue("wFile");
     }
 
     if (cmd.getOptionValue("pFile") != null) {
+      System.out.println("Point file: " + cmd.getOptionValue("pFile"));
       config.pointsFile = cmd.getOptionValue("pFile");
     }
 
     if (cmd.getOptionValue("points") != null) {
+      System.out.println("Points: " + cmd.getOptionValue("points"));
       config.numberDataPoints = Integer.parseInt(cmd.getOptionValue("points"));
     }
 
