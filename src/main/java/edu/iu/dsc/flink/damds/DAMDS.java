@@ -15,6 +15,8 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.List;
 
@@ -217,18 +219,33 @@ public class DAMDS implements Serializable {
       }
     }
     long endTime = System.currentTimeMillis();
+    long l = endTime - startTime;
     // print the final details
-    printFinalIteration(iteration);
-    System.out.println("Time: " + (endTime - startTime));
+    printFinalIteration(iteration, l);
+    System.out.println("Time: " + l);
   }
 
-  public void printFinalIteration(Iteration it) {
+  public void printFinalIteration(Iteration it, long totalTime) {
     StringBuilder sb = new StringBuilder();
     sb.append("Temperature: ").append(it.tCur).append("\n");
     sb.append("Stress: ").append(it.stress).append("\n");
     sb.append("Loop cgCount: ").append(it.tItr).append("\n");
     sb.append("Stress iteration cgCount: ").append(it.stressItr).append("\n");
+    sb.append("Time: ").append(totalTime).append("\n");
     System.out.println(sb.toString());
+    writeFile(sb.toString(), config.outFolder + "/" + config.outFile);
+  }
+
+  public void writeFile(String content, String file) {
+    FileWriter writer;
+    try {
+      writer = new FileWriter(file, false);
+      writer.write(content);
+      writer.write("\r\n");   // write new line
+      writer.close();
+    } catch (IOException e) {
+      System.out.println("Failed to write file: " + file);
+    }
   }
 
   public DataSet<Iteration> updatePreStressIteration(DataSet<Iteration> itr, DataSet<Double> preStress) {

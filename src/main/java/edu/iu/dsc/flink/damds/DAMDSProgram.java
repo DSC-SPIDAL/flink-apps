@@ -20,6 +20,7 @@ public class DAMDSProgram {
     programOptions.addOption(Utils.createOption("wFile", true, "weight file", false));
     programOptions.addOption(Utils.createOption("pFile", true, "point file", false));
     programOptions.addOption(Utils.createOption("points", true, "no of points", false));
+    programOptions.addOption(Utils.createOption("outFolder", true, "Out folder", false));
   }
 
   public static void main(String[] args) throws Exception {
@@ -52,6 +53,10 @@ public class DAMDSProgram {
 
     if (cmd.getOptionValue("points") != null) {
       config.numberDataPoints = Integer.parseInt(cmd.getOptionValue("points"));
+    }
+
+    if (cmd.getOptionValue("outFolder") != null) {
+      config.outFolder = cmd.getOptionValue("outFolder");
     }
 
     BlockSize = config.blockSize;

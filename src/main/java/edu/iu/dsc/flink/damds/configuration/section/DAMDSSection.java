@@ -45,6 +45,7 @@ public class DAMDSSection {
       isSimpleWeights = Boolean.parseBoolean(getProperty(p, "IsSimpleWeights", "false"));
 
       outFolder = getProperty(p, "OutputFolder", "damds_out");
+      outFile = getProperty(p, "OutFile", "final.txt");
       iterationFile = getProperty(p, "IterationFile", "iterations");
       maxStressLoops = Integer.parseInt(getProperty(p, "MaxStressLoops", "0"));
     } catch (IOException e) {
@@ -65,6 +66,7 @@ public class DAMDSSection {
   }
 
   public String outFolder;
+  public String outFile;
   public String iterationFile;
 
   public String distanceMatrixFile;
