@@ -21,6 +21,7 @@ public class DAMDSProgram {
     programOptions.addOption(Utils.createOption("pFile", true, "point file", false));
     programOptions.addOption(Utils.createOption("points", true, "no of points", false));
     programOptions.addOption(Utils.createOption("outFolder", true, "Out folder", false));
+    programOptions.addOption(Utils.createOption("initPFile", true, "Init point", false));
   }
 
   public static void main(String[] args) throws Exception {
@@ -52,6 +53,11 @@ public class DAMDSProgram {
     if (cmd.getOptionValue("pFile") != null) {
       System.out.println("Point file: " + cmd.getOptionValue("pFile"));
       config.pointsFile = cmd.getOptionValue("pFile");
+    }
+
+    if (cmd.getOptionValue("initPFile") != null) {
+      System.out.println("Init Point file: " + cmd.getOptionValue("initPFile"));
+      config.initialPointsFile = cmd.getOptionValue("initPFile");
     }
 
     if (cmd.getOptionValue("points") != null) {
