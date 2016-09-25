@@ -21,6 +21,7 @@ public class MatrixFileGenerator {
     programOptions.addOption("n", true, "N");
     programOptions.addOption("m", true, "M");
     programOptions.addOption("f", true, "File name");
+    programOptions.addOption("t", true, "Type of file");
   }
 
   public static void main(String[] args) throws IOException {
@@ -34,13 +35,20 @@ public class MatrixFileGenerator {
     int n = Integer.parseInt(cmd.getOptionValue("n"));
     int m = Integer.parseInt(cmd.getOptionValue("m"));
     String fileName = cmd.getOptionValue("f");
+    String type = cmd.getOptionValue("t");
 //    double []data = new double[n * m];
 //    for (int i = 0; i < n * m; i++) {
 //      data[i] = Math.random();
 //    }
     // writeMatrixFile(n, m, data, true, fileName);
    // writeShortMatrixFile(n, m, true, fileName, 1);
-    writePointsFile(n, m, fileName);
+    if (type.equals("m")) {
+      writeShortMatrixFile(n, m, true, fileName);
+    } else if (type.equals("w")) {
+      writeShortMatrixFile(n, m, true, fileName);
+    } else if (type.equals("p")) {
+      writePointsFile(n, m, fileName);
+    }
   }
 
   public static void writeMatrixFile(
