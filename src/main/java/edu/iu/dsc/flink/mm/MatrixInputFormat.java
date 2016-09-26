@@ -2,10 +2,14 @@ package edu.iu.dsc.flink.mm;
 
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.*;
+import org.apache.flink.hadoop.shaded.com.google.common.collect.ArrayListMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
   private static final long serialVersionUID = 1L;
@@ -34,11 +38,17 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
     BlockLocation[] blocks;
     for (int i = 0; i < minNumSplits; ++i) {
       blocks = fs.getFileBlockLocations(file, 0, file.getLen());
-      if (blocks.length != 1) {
-        throw new RuntimeException("File blocks should be 1 for local file system");
+//      if (blocks.length != 1) {
+//        throw new RuntimeException("File blocks should be 1 for local file system");
+//      }
+      Set<String> hosts = new HashSet<>();
+      for (BlockLocation b :blocks) {
+        for (String host : b.getHosts()) {
+          hosts.add(host);
+        }
       }
       length = (q + (i < r ? 1 : 0)) * globalColumnCount * byteSize;
-      FileInputSplit fis = new FileInputSplit(i, this.filePath, start, length, blocks[0].getHosts());
+      FileInputSplit fis = new FileInputSplit(i, this.filePath, start, length, hosts.toArray(new String[hosts.size()]));
       splits[i] = fis;
       start += length;
     }
