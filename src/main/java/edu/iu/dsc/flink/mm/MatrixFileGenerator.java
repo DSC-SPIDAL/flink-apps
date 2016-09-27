@@ -76,6 +76,10 @@ public class MatrixFileGenerator {
       throws IOException {
     Path pointsFile = Paths.get(outFile);
     Random random = new Random();
+    double array[] = new double[n];
+    for (int i = 0; i < n; i++) {
+      array[i] = random.nextDouble();
+    }
     try (
         BufferedOutputStream pointBufferedStream = new BufferedOutputStream(
             Files.newOutputStream(pointsFile, StandardOpenOption.CREATE)))
@@ -85,7 +89,7 @@ public class MatrixFileGenerator {
           pointBufferedStream);
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; j++) {
-          pointStream.writeShort(Math.abs(random.nextInt(Short.MAX_VALUE)));
+          pointStream.writeShort(Math.abs((short)Math.ceil(Short.MAX_VALUE * (array[i] * array[j]))));
         }
       }
     }
