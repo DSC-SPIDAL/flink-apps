@@ -14,7 +14,12 @@ public class DAMDSUtils {
     i = d * i;
     j = d * j;
     for (int k = 0; k < d; ++k) {
-      e = v[i + k] - v[j + k];
+      try {
+        e = v[i + k] - v[j + k];
+      } catch (ArrayIndexOutOfBoundsException arrayE) {
+        String msg = String.format("%d %d %d %d", v.length, i, j, d);
+        throw new ArrayIndexOutOfBoundsException(msg);
+      }
       t += e * e;
     }
     return Math.sqrt(t);
