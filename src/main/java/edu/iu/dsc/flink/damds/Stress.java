@@ -75,7 +75,7 @@ public class Stress {
         if (origD < 0) {
           continue;
         }
-        //System.out.printf("%d %d \n", globalCol, globalRow);
+        System.out.printf("%d %d %d %d\n", globalCol, globalRow, targetDim, preX.length);
         euclideanD = globalRow != globalCol ? DAMDSUtils.calculateEuclideanDist(
             preX, globalRow , globalCol, targetDim) : 0.0;
 
