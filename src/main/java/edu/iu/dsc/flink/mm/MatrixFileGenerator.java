@@ -3,6 +3,7 @@ package edu.iu.dsc.flink.mm;
 import com.google.common.base.Optional;
 import com.google.common.io.LittleEndianDataInputStream;
 import com.google.common.io.LittleEndianDataOutputStream;
+import edu.iu.dsc.flink.damds.types.DoubleMatrix;
 import org.apache.commons.cli.*;
 
 import java.awt.*;
@@ -89,7 +90,7 @@ public class MatrixFileGenerator {
           pointBufferedStream);
       for (int i = 0; i < n; i++) {
         for (int j = 0; j < m; j++) {
-          pointStream.writeShort(Math.abs((short)Math.ceil(Short.MAX_VALUE * (array[i] * array[j]))));
+          pointStream.writeShort(new Double(Math.ceil(Short.MAX_VALUE * (array[i] * array[j]))).intValue());
         }
       }
     }
