@@ -9,10 +9,16 @@ import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 
 import java.io.BufferedInputStream;
 import java.io.DataInput;
 import java.io.DataInputStream;
+import java.io.InputStreamReader;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -84,35 +90,73 @@ public class Distances {
             weightBlock.setIndex(distanceBlock.getIndex());
             weightBlock.setStart(distanceBlock.getStart());
 
-            // now read the data from the file
-            try (
-                BufferedInputStream pointBufferedStream = new BufferedInputStream(
-                    Files.newInputStream(Paths.get(weightFile),StandardOpenOption.READ)))
-            {
-              DataInput pointStream = isBigEndian ? new DataInputStream(
-                  pointBufferedStream) : new LittleEndianDataInputStream(
-                  pointBufferedStream);
-              int rows = weightBlock.getBlockRows();
-              int cols = weightBlock.getMatrixCols();
-              short []data = new short[rows * cols];
-              int index = 0;
-              int size = weightBlock.getStart() * weightBlock.getMatrixCols();
-              for (int i = 0; i < size; i++) {
-                pointStream.readShort();
+            // check weather this is HDFS
+            try {
+              URL url = new URL(weightFile);
+              if (url.getProtocol().equals("hdfs")) {
+                readHDFSFile(weightFile, isBigEndian, weightBlock);
               }
-
-              for (int i = 0; i < rows; i++) {
-                for (int j = 0; j < cols; j++) {
-                  data[index++] = pointStream.readShort();
-                }
-              }
-              weightBlock.setData(data);
-              return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distanceBlock, weightBlock);
+            } catch (MalformedURLException e) {
+              // regular file
+              readFile(weightFile, isBigEndian, weightBlock);
             }
+            return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distanceBlock, weightBlock);
           }
         }).withParameters(parameters);
 
     return distanceWeights;
+  }
+
+  private static void readHDFSFile(String weightFile, boolean isBigEndian, ShortMatrixBlock weightBlock) throws Exception {
+    Path pt = new Path(weightFile);
+    FileSystem fs = FileSystem.get(new org.apache.hadoop.conf.Configuration());
+    // now read the data from the file
+    try (BufferedInputStream pointBufferedStream = new BufferedInputStream(fs.open(pt))) {
+      DataInput pointStream = isBigEndian ? new DataInputStream(
+          pointBufferedStream) : new LittleEndianDataInputStream(
+          pointBufferedStream);
+      int rows = weightBlock.getBlockRows();
+      int cols = weightBlock.getMatrixCols();
+      short []data = new short[rows * cols];
+      int index = 0;
+      int size = weightBlock.getStart() * weightBlock.getMatrixCols();
+      for (int i = 0; i < size; i++) {
+        pointStream.readShort();
+      }
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          data[index++] = pointStream.readShort();
+        }
+      }
+      weightBlock.setData(data);
+    }
+  }
+
+  private static void readFile(String weightFile, boolean isBigEndian, ShortMatrixBlock weightBlock) throws Exception {
+    // now read the data from the file
+    try (
+        BufferedInputStream pointBufferedStream = new BufferedInputStream(
+            Files.newInputStream(Paths.get(weightFile),StandardOpenOption.READ)))
+    {
+      DataInput pointStream = isBigEndian ? new DataInputStream(
+          pointBufferedStream) : new LittleEndianDataInputStream(
+          pointBufferedStream);
+      int rows = weightBlock.getBlockRows();
+      int cols = weightBlock.getMatrixCols();
+      short []data = new short[rows * cols];
+      int index = 0;
+      int size = weightBlock.getStart() * weightBlock.getMatrixCols();
+      for (int i = 0; i < size; i++) {
+        pointStream.readShort();
+      }
+      for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+          data[index++] = pointStream.readShort();
+        }
+      }
+      weightBlock.setData(data);
+
+    }
   }
 
   private static void changeZeroDistancesToPostiveMin(
