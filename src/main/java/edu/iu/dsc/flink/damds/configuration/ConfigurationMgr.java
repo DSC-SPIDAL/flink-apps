@@ -31,6 +31,8 @@ public class ConfigurationMgr {
     configuration.setDouble(Constants.TMIN_FACTOR, config.tMinFactor);
     configuration.setDouble(Constants.CG_THRESHOLD, config.cgErrorThreshold);
     configuration.setBoolean(Constants.ExactCG, config.exactCgIter);
+    configuration.setBoolean(Constants.BIG_INDIAN, config.isBigEndian);
+    configuration.setString(Constants.WEIGHT_FILE, config.weightMatrixFile);
     return configuration;
   }
 }

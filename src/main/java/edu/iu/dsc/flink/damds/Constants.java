@@ -9,6 +9,8 @@ public class Constants {
   public static final String GLOBAL_ROWS = "globalRows";
   public static final String ALPHA = "alpha";
   public static final String THRESHOLD = "threshold";
+  public static final String WEIGHT_FILE = "weightFile";
+  public static final String BIG_INDIAN = "bigIndian";
 
   static final String PROGRAM_NAME = "DAMDS";
 

@@ -1,14 +1,21 @@
 package edu.iu.dsc.flink.damds;
 
+import com.google.common.io.LittleEndianDataInputStream;
 import edu.indiana.soic.spidal.common.DoubleStatistics;
-import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 import org.apache.flink.api.common.functions.JoinFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 
+import java.io.BufferedInputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.List;
 
 import static edu.iu.dsc.flink.damds.DAMDSUtils.INV_SHORT_MAX;
@@ -30,8 +37,8 @@ public class Distances {
     return updates;
   }
 
-  public static DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> calculate(DataSet<ShortMatrixBlock> distances,
-                                                                              DataSet<ShortMatrixBlock> weights) {
+  public static DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> join(DataSet<ShortMatrixBlock> distances,
+                                                                         DataSet<ShortMatrixBlock> weights) {
     DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights =
         distances.join(weights).where(new KeySelector<ShortMatrixBlock, Integer>() {
       @Override
@@ -51,6 +58,59 @@ public class Distances {
         return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distances, weights);
       }
     });
+
+    return distanceWeights;
+  }
+
+  public static DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> filReadJoin(DataSet<ShortMatrixBlock> distances,
+                                                                         Configuration parameters) {
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights =
+        distances.map(new RichMapFunction<ShortMatrixBlock, Tuple2<ShortMatrixBlock, ShortMatrixBlock>>() {
+          String weightFile;
+          boolean isBigEndian;
+          @Override
+          public void open(Configuration parameters) throws Exception {
+            super.open(parameters);
+            this.weightFile = parameters.getString(Constants.WEIGHT_FILE, "weight.bin");
+            this.isBigEndian = parameters.getBoolean(Constants.BIG_INDIAN, true);
+          }
+
+          @Override
+          public Tuple2<ShortMatrixBlock, ShortMatrixBlock> map(ShortMatrixBlock distanceBlock) throws Exception {
+            ShortMatrixBlock weightBlock = new ShortMatrixBlock();
+            weightBlock.setBlockRows(distanceBlock.getBlockRows());
+            weightBlock.setMatrixCols(distanceBlock.getMatrixCols());
+            weightBlock.setMatrixRows(distanceBlock.getMatrixRows());
+            weightBlock.setIndex(distanceBlock.getIndex());
+            weightBlock.setStart(distanceBlock.getStart());
+
+            // now read the data from the file
+            try (
+                BufferedInputStream pointBufferedStream = new BufferedInputStream(
+                    Files.newInputStream(Paths.get(weightFile),StandardOpenOption.READ)))
+            {
+              DataInput pointStream = isBigEndian ? new DataInputStream(
+                  pointBufferedStream) : new LittleEndianDataInputStream(
+                  pointBufferedStream);
+              int rows = weightBlock.getBlockRows();
+              int cols = weightBlock.getMatrixCols();
+              short []data = new short[rows * cols];
+              int index = 0;
+              int size = weightBlock.getStart() * weightBlock.getMatrixCols();
+              for (int i = 0; i < size; i++) {
+                pointStream.readShort();
+              }
+
+              for (int i = 0; i < rows; i++) {
+                for (int j = 0; j < cols; j++) {
+                  data[index++] = pointStream.readShort();
+                }
+              }
+              weightBlock.setData(data);
+              return new Tuple2<ShortMatrixBlock, ShortMatrixBlock>(distanceBlock, weightBlock);
+            }
+          }
+        }).withParameters(parameters);
 
     return distanceWeights;
   }

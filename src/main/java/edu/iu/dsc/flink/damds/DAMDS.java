@@ -50,7 +50,7 @@ public class DAMDS implements Serializable {
     distances = Distances.updateDistances(distances, stats);
     // now load the points
     DataSet<Matrix> prex = loader.loadInitPointDataSetFromEnv(initialPointFile);
-    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.filReadJoin(distances, parameters);
     //vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
     // add tcur and tmax to matrix
     prex = joinStats(prex, stats, iterationDataSet);
@@ -79,7 +79,7 @@ public class DAMDS implements Serializable {
     distances = Distances.updateDistances(distances, stats);
     // now load the points
     DataSet<Matrix> prex = loader.loadInitPointDataSetFromEnv(initialPointFile);
-    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.calculate(distances, weights);
+    DataSet<Tuple2<ShortMatrixBlock, ShortMatrixBlock>> distanceWeights = Distances.filReadJoin(distances, parameters);
     // generate vArray
     DataSet<Tuple2<Matrix, ShortMatrixBlock>> vArray = VArray.generateVArray(distanceWeights, parameters);
     //vArray.writeAsText("varray", FileSystem.WriteMode.OVERWRITE);
