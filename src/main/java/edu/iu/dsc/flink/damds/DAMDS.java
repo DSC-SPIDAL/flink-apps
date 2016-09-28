@@ -176,7 +176,7 @@ public class DAMDS implements Serializable {
       double diffStress = config.threshold + 1;
       int stressIterations = 0;
       int cgCount = 0;
-      while (diffStress >= config.threshold) {
+      while (diffStress >= config.threshold || config.maxStressLoops > 0) {
         // after we use the initial point file, we will use the output of
         // the previous iteration as input
         if (!initLoaded) {

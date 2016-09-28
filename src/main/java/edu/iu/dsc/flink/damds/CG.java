@@ -27,10 +27,12 @@ public class CG {
 //    MMr.writeAsText("mmr0", FileSystem.WriteMode.OVERWRITE);
     DataSet<Tuple2<Matrix, Matrix>> newBC = MMr.map(new RichMapFunction<Matrix, Tuple2<Matrix, Matrix>>() {
       double cgThreshold;
+      boolean exactCG;
       @Override
       public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         cgThreshold = parameters.getDouble(Constants.CG_THRESHOLD, 0.00001);
+        exactCG = parameters.getBoolean(Constants.ExactCG, false);
       }
 
       @Override
@@ -45,6 +47,7 @@ public class CG {
         MMR.addProperty("rTr", rTr);
         MMR.addProperty("testEnd", rTr * cgThreshold);
         MMR.addProperty("break", false);
+        MMR.addProperty("exactCG", exactCG);
 
 //        writeToFile("mmr1", MMR.toString());
 //        writeToFile("bc2", BCM.toString());
@@ -107,7 +110,8 @@ public class CG {
         }
 
         double testEnd = (double) mmrMatrix.getProperties().get("testEnd");
-        if (rtr < testEnd) {
+        boolean exactCG = (boolean) mmrMatrix.getProperties().get("exactCG");
+        if (rtr < testEnd && !exactCG) {
           mmrMatrix.addProperty("break", true);
         }
 

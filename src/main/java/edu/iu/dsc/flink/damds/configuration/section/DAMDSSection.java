@@ -48,6 +48,7 @@ public class DAMDSSection {
       outFile = getProperty(p, "OutFile", "final.txt");
       iterationFile = getProperty(p, "IterationFile", "iterations");
       maxStressLoops = Integer.parseInt(getProperty(p, "MaxStressLoops", "0"));
+      exactCgIter = Boolean.parseBoolean(getProperty(p, "ExactCGIter", "false"));
     } catch (IOException e) {
       throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
     }
@@ -98,6 +99,7 @@ public class DAMDSSection {
   public int repetitions;
   public int maxtemploops;
   public int maxStressLoops;
+  public boolean exactCgIter;
 
   private String getPadding(int count, String prefix){
     StringBuilder sb = new StringBuilder(prefix);

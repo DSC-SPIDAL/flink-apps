@@ -30,6 +30,7 @@ public class ConfigurationMgr {
     configuration.setDouble(Constants.THRESHOLD, config.threshold);
     configuration.setDouble(Constants.TMIN_FACTOR, config.tMinFactor);
     configuration.setDouble(Constants.CG_THRESHOLD, config.cgErrorThreshold);
+    configuration.setBoolean(Constants.ExactCG, config.exactCgIter);
     return configuration;
   }
 }

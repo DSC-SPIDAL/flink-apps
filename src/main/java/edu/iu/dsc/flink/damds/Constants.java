@@ -4,6 +4,7 @@ public class Constants {
   public static final String TARGET_DIMENSION = "targetDimension";
   public static final String TMIN_FACTOR = "tMinFactor";
   public static final String CG_THRESHOLD = "cgThreshold";
+  public static final String ExactCG = "exactCG";
   public static final String GLOBAL_COLS = "globalCols";
   public static final String GLOBAL_ROWS = "globalRows";
   public static final String ALPHA = "alpha";
