@@ -107,7 +107,9 @@ public class Distances {
 
   private static void readHDFSFile(String weightFile, boolean isBigEndian, ShortMatrixBlock weightBlock) throws Exception {
     Path pt = new Path(weightFile);
-    FileSystem fs = FileSystem.get(new org.apache.hadoop.conf.Configuration());
+    org.apache.hadoop.conf.Configuration conf = new org.apache.hadoop.conf.Configuration();
+    conf.addResource(new Path("/N/u/skamburu/deploy/hadoop-2.7.3/etc/hadoop/core-site.xml"));
+    FileSystem fs = FileSystem.get(conf);
     // now read the data from the file
     try (BufferedInputStream pointBufferedStream = new BufferedInputStream(fs.open(pt))) {
       DataInput pointStream = isBigEndian ? new DataInputStream(
