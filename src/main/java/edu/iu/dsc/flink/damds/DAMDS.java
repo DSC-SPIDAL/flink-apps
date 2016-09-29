@@ -234,6 +234,7 @@ public class DAMDS implements Serializable {
     sb.append("Time: ").append(totalTime).append("\n");
     System.out.println(sb.toString());
     writeFile(sb.toString(), config.outFolder + "/" + config.outFile);
+    writeFile(config.toString(), config.outFolder + "/config.txt");
   }
 
   public void writeFile(String content, String file) {

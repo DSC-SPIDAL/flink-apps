@@ -46,6 +46,7 @@ public class DataLoader {
     inputFormat.setBigEndian(true);
     inputFormat.setGlobalColumnCount(config.numberDataPoints);
     inputFormat.setGlobalRowCount(config.numberDataPoints);
+    inputFormat.setGenerateData(config.isGenData);
 
     return env.readFile(inputFormat, config.distanceMatrixFile);
   }
@@ -55,6 +56,7 @@ public class DataLoader {
     inputFormat.setBigEndian(true);
     inputFormat.setGlobalColumnCount(config.numberDataPoints);
     inputFormat.setGlobalRowCount(config.numberDataPoints);
+    inputFormat.setGenerateData(config.isGenData);
 
     return env.readFile(inputFormat, config.weightMatrixFile);
   }
