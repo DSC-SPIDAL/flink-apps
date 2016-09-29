@@ -4,6 +4,9 @@ import edu.indiana.soic.spidal.common.DoubleStatistics;
 import edu.iu.dsc.flink.damds.configuration.ConfigurationMgr;
 import edu.iu.dsc.flink.damds.configuration.section.DAMDSSection;
 import edu.iu.dsc.flink.damds.types.Iteration;
+import edu.iu.dsc.flink.damds.types.LoopTiming;
+import edu.iu.dsc.flink.damds.types.StressTiming;
+import edu.iu.dsc.flink.damds.types.TotalTiming;
 import edu.iu.dsc.flink.mm.Matrix;
 import edu.iu.dsc.flink.mm.ShortMatrixBlock;
 
@@ -151,6 +154,8 @@ public class DAMDS implements Serializable {
   public void execute() throws Exception {
     Configuration parameters = ConfigurationMgr.getConfiguration(config);
     long startTime = System.currentTimeMillis();
+    TotalTiming totalTiming = new TotalTiming();
+    totalTiming.start();
     // first load the intial temperaturs etc
     DataSet<Iteration> initialIteration = loadInitialTemperature(parameters);
     initialIteration.writeAsText(config.outFolder + "/" + config.iterationFile,
@@ -162,6 +167,8 @@ public class DAMDS implements Serializable {
     String initFile;
     // first lets read the last iteration results from file system
     while (true) {
+      LoopTiming loopTiming = new LoopTiming(iteration.tItr);
+      loopTiming.start();
       if (!initLoaded) {
         initFile = config.initialPointsFile;
       } else {
@@ -177,6 +184,9 @@ public class DAMDS implements Serializable {
       int stressIterations = 0;
       int cgCount = 0;
       while (diffStress >= config.threshold || config.maxStressLoops > 0) {
+        StressTiming stressTiming = new StressTiming();
+        stressTiming.setItr(stressIterations);
+        stressTiming.start();
         // after we use the initial point file, we will use the output of
         // the previous iteration as input
         if (!initLoaded) {
@@ -195,8 +205,11 @@ public class DAMDS implements Serializable {
         System.out.printf("Loop %d iteration %d cg count %d stress %f\n", iteration.tItr, stressIterations, iteration.cgCount ,iteration.stress);
         stressIterations++;
         cgCount += iteration.cgCount;
+        stressTiming.setCgIterators(iteration.cgCount);
+        loopTiming.add(stressTiming);
         // break for test purposes
         if (config.maxStressLoops > 0 && stressIterations == config.maxStressLoops){
+          stressTiming.end();
           break;
         }
       }
@@ -204,8 +217,18 @@ public class DAMDS implements Serializable {
       System.out.printf("Done iteration: T iteration=%d stress itrs=%d temp=%f iteration stress= %f average cg=%f \n",
           iteration.tItr, stressIterations, iteration.tCur, iteration.stress, ((double)cgCount / stressIterations));
 
-      if (iteration.tCur == 0) {
-        break;
+      if (config.maxtemploops > 0) {
+        if (iteration.tItr == config.maxtemploops) {
+          loopTiming.end();
+          totalTiming.add(loopTiming);
+          break;
+        }
+      } else {
+        if (iteration.tCur == 0) {
+          loopTiming.end();
+          totalTiming.add(loopTiming);
+          break;
+        }
       }
 
       iteration.tItr++;
@@ -213,15 +236,19 @@ public class DAMDS implements Serializable {
       if (iteration.tCur < iteration.tMin) {
         iteration.tCur = 0;
       }
+      loopTiming.end();
+      totalTiming.add(loopTiming);
 
-      if (config.maxtemploops > 0 && iteration.tItr == config.maxtemploops){
-        break;
-      }
+//      if (config.maxtemploops > 0 && iteration.tItr == config.maxtemploops){
+//        break;
+//      }
     }
+    totalTiming.end();
     long endTime = System.currentTimeMillis();
     long l = endTime - startTime;
     // print the final details
     printFinalIteration(iteration, l);
+    writeFile(totalTiming.serialize(), config.outFolder + "/timing.txt");
     System.out.println("Time: " + l);
   }
 
@@ -234,7 +261,7 @@ public class DAMDS implements Serializable {
     sb.append("Time: ").append(totalTime).append("\n");
     System.out.println(sb.toString());
     writeFile(sb.toString(), config.outFolder + "/" + config.outFile);
-    writeFile(config.toString(), config.outFolder + "/config.txt");
+    writeFile(config.toString(false), config.outFolder + "/config.txt");
   }
 
   public void writeFile(String content, String file) {
