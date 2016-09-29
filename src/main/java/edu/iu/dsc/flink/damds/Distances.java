@@ -91,12 +91,10 @@ public class Distances {
             weightBlock.setStart(distanceBlock.getStart());
 
             // check weather this is HDFS
-            try {
-              URL url = new URL(weightFile);
-              if (url.getProtocol().equals("hdfs")) {
-                readHDFSFile(weightFile, isBigEndian, weightBlock);
-              }
-            } catch (MalformedURLException e) {
+            String protocolSplit[] = weightFile.split(":");
+            if (protocolSplit.length > 1 && protocolSplit[0].trim().equals("hdfs")) {
+              readHDFSFile(weightFile, isBigEndian, weightBlock);
+            } else {
               // regular file
               readFile(weightFile, isBigEndian, weightBlock);
             }
