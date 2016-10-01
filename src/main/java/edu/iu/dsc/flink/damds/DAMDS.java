@@ -208,7 +208,7 @@ public class DAMDS implements Serializable {
         stressTiming.setCgIterators(iteration.cgCount);
         loopTiming.add(stressTiming);
         // break for test purposes
-        if (config.maxStressLoops > 0 && stressIterations == config.maxStressLoops){
+        if (config.maxStressLoops >= 0 && stressIterations == config.maxStressLoops){
           stressTiming.end();
           break;
         }
@@ -217,7 +217,7 @@ public class DAMDS implements Serializable {
       System.out.printf("Done iteration: T iteration=%d stress itrs=%d temp=%f iteration stress= %f average cg=%f \n",
           iteration.tItr, stressIterations, iteration.tCur, iteration.stress, ((double)cgCount / stressIterations));
 
-      if (config.maxtemploops > 0) {
+      if (config.maxtemploops >= 0) {
         if (iteration.tItr == config.maxtemploops) {
           loopTiming.end();
           totalTiming.add(loopTiming);
