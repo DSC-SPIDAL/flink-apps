@@ -37,7 +37,6 @@ public class ShortMatrixInputFormat extends MatrixInputFormat<ShortMatrixBlock> 
     } else {
       genData(length, reuse);
     }
-    LOG.info("Next block for split: " + splitIndex);
     isRead = true;
     block.setData(reuse);
     // LOG.info("Block print: " + splitIndex + "->" + block.toString());
