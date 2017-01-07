@@ -2,12 +2,10 @@ package edu.iu.dsc.flink.mm;
 
 import org.apache.flink.api.common.io.FileInputFormat;
 import org.apache.flink.core.fs.*;
-import org.apache.flink.hadoop.shaded.com.google.common.collect.ArrayListMultimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,6 +19,7 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
   protected int globalColumnCount;
   protected int globalRowCount;
   protected boolean isRead = false;
+  protected boolean generateData = false;
   protected int byteSize = Double.BYTES;
   @Override
   public FileInputSplit[] createInputSplits(int minNumSplits)
@@ -93,5 +92,13 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
 
   public void setGlobalRowCount(int globalRowCount) {
     this.globalRowCount = globalRowCount;
+  }
+
+  public boolean isGenerateData() {
+    return generateData;
+  }
+
+  public void setGenerateData(boolean generateData) {
+    this.generateData = generateData;
   }
 }

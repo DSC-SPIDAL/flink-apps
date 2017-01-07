@@ -49,6 +49,8 @@ public class DAMDSSection {
       iterationFile = getProperty(p, "IterationFile", "iterations");
       maxStressLoops = Integer.parseInt(getProperty(p, "MaxStressLoops", "0"));
       exactCgIter = Boolean.parseBoolean(getProperty(p, "ExactCGIter", "false"));
+      isGenData = Boolean.parseBoolean(getProperty(p, "GenerateData", "false"));
+
     } catch (IOException e) {
       throw new RuntimeException("IO exception occurred while reading configuration properties file", e);
     }
@@ -100,6 +102,7 @@ public class DAMDSSection {
   public int maxtemploops;
   public int maxStressLoops;
   public boolean exactCgIter;
+  public boolean isGenData;
 
   private String getPadding(int count, String prefix){
     StringBuilder sb = new StringBuilder(prefix);
@@ -132,7 +135,10 @@ public class DAMDSSection {
         "Weight Transformation Function",
         "Repetitions",
         "Max Temp Loops",
-        "Is Simple Weights"};
+        "Is Simple Weights",
+         "Max stress loops",
+         "Exact cg iterations",
+          "Generate data"};
     Object[] args =
         new Object[]{distanceMatrixFile,
             weightMatrixFile,
@@ -155,7 +161,8 @@ public class DAMDSSection {
             isMemoryMapped,
             transformationFunction,
             weightTransformationFunction,
-            repetitions, maxtemploops, isSimpleWeights};
+            repetitions, maxtemploops, isSimpleWeights,
+            maxStressLoops, exactCgIter, isGenData};
 
     java.util.Optional<Integer> maxLength =
         Arrays.stream(params).map(String::length).reduce(Math::max);
