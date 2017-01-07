@@ -8,6 +8,7 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
 import java.util.*;
@@ -156,7 +157,7 @@ public class KMeansBlockTiming {
 
         // emit result
         if (params.has("output")) {
-            finalCentroids.writeAsText(params.get("output"));
+            finalCentroids.writeAsText(params.get("output"), FileSystem.WriteMode.OVERWRITE);
 
             // since file sinks are lazy, we trigger the execution explicitly
             env.execute("KMeans Example");

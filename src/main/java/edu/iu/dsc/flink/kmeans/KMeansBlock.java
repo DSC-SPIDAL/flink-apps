@@ -10,7 +10,9 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
+import org.apache.hadoop.io.ObjectWritable;
 
 import java.util.*;
 
@@ -131,6 +133,7 @@ public class KMeansBlock {
 
       // since file sinks are lazy, we trigger the execution explicitly
       env.execute("KMeans Example");
+      System.out.println("Total time: " + env.getLastJobExecutionResult().getNetRuntime());
     } else {
       System.out.println("Printing result to stdout. Use --output to specify output path.");
       finalCentroids.print();
