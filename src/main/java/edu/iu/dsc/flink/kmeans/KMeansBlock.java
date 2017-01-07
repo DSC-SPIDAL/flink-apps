@@ -129,7 +129,7 @@ public class KMeansBlock {
 
     // emit result
     if (params.has("output")) {
-      finalCentroids.writeAsText(params.get("output"));
+      finalCentroids.writeAsText(params.get("output"), FileSystem.WriteMode.OVERWRITE);
 
       // since file sinks are lazy, we trigger the execution explicitly
       env.execute("KMeans Example");
@@ -228,7 +228,7 @@ public class KMeansBlock {
           counts.put(closestCentroidId, count);
         }
       }
-      System.out.println(index +"," + centroids.size() + "," + (System.currentTimeMillis() - startTime));
+      // System.out.println(index +"," + centroids.size() + "," + (System.currentTimeMillis() - startTime));
       // emit a new record with the center id and the data point.
       for (Map.Entry<Integer, Point> ce : centroidMap.entrySet()) {
         int c = counts.get(ce.getKey());
