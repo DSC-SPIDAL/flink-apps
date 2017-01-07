@@ -1,7 +1,5 @@
 package edu.iu.dsc.flink.kmeans;
 
-import edu.iu.dsc.flink.kmeans.utils.Timing;
-
 /**
  * A simple two-dimensional centroid, basically a point with an ID.
  */
@@ -17,27 +15,10 @@ public class Centroid extends Point {
         this.id = id;
     }
 
-    public Centroid(int id, double x, double y, long time) {
-        super(x, y, time);
-        this.id = id;
-    }
-
-
-    public Centroid(int id, int mapId, double x, double y, long time) {
-        super(x, y, time);
+    public Centroid(int id, int mapId, double x, double y) {
+        super(x, y);
         this.id = id;
         this.mapId = mapId;
-    }
-
-    public Centroid(int id, int mapId, double x, double y, long time, long reductionTime) {
-        super(x, y, time, reductionTime);
-        this.id = id;
-        this.mapId = mapId;
-    }
-
-    public Centroid(int id, double x, double y, long time, long reductionTime) {
-        super(x, y, time, reductionTime);
-        this.id = id;
     }
 
     public Centroid(int id, Point p) {
@@ -48,5 +29,21 @@ public class Centroid extends Point {
     @Override
     public String toString() {
         return id + " " + super.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Centroid centroid = (Centroid) o;
+
+        return id == centroid.id;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return id;
     }
 }

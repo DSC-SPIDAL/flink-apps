@@ -1,12 +1,16 @@
 package edu.iu.dsc.flink.kmeans;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
+import org.apache.flink.api.common.typeutils.base.array.StringArraySerializer;
 import org.apache.flink.api.java.functions.FunctionAnnotation.ForwardedFields;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -15,6 +19,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.IterativeDataSet;
+import org.apache.flink.core.fs.FileSystem;
+import org.apache.flink.util.Collector;
 
 /**
  * This example implements a basic K-Means clustering algorithm.
@@ -47,7 +53,6 @@ import org.apache.flink.api.java.operators.IterativeDataSet;
  *
  * <p>
  * Usage: <code>KMeans --points &lt;path&gt; --centroids &lt;path&gt; --output &lt;path&gt; --iterations &lt;n&gt;</code><br>
- * If no parameters are provided, the program is run with default data from {@link org.apache.flink.examples.java.clustering.util.KMeansData} and 10 iterations.
  *
  * <p>
  * This example shows how to use:
@@ -73,6 +78,7 @@ public class KMeansOriginal {
         // read the points and centroids from the provided paths or fall back to default data
         DataSet<Point> points = getPointDataSet(params, env);
         DataSet<Centroid> centroids = getCentroidDataSet(params, env);
+        DataSet<Integer> centroidIndexes = getCentroidIds(params, env);
 
         // set number of bulk iterations for KMeans algorithm
         IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
@@ -86,15 +92,34 @@ public class KMeansOriginal {
                         // compute new centroids from point counts and coordinate sums
                 .map(new CentroidAverager());
 
-        // feed new centroids back into next iteration
-        DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
+        DataSet<Centroid> filledCentroids = centroidIndexes.map(new RichMapFunction<Integer, Centroid>() {
+            @Override
+            public Centroid map(Integer integer) throws Exception {
+                Centroid fill = new Centroid(integer, 0, 0);
+                for (Centroid c : centroids) {
+                    if (c.id == integer) {
+                        return c;
+                    }
+                }
+                System.out.println(String.format("%d not in the set", integer));
+                return fill;
+            }
+
+            List<Centroid> centroids;
+            @Override
+            public void open(Configuration parameters) throws Exception {
+                this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
+            }
+        }).withBroadcastSet(newCentroids, "centroids");
+        DataSet<Centroid> finalCentroids = loop.closeWith(filledCentroids);
 
         // emit result
         if (params.has("output")) {
-            finalCentroids.writeAsText(params.get("output"));
+            finalCentroids.writeAsText(params.get("output"), FileSystem.WriteMode.OVERWRITE);
 
             // since file sinks are lazy, we trigger the execution explicitly
             env.execute("KMeans Example");
+            System.out.println(String.format("Total time: %d", env.getLastJobExecutionResult().getNetRuntime()));
         } else {
             System.out.println("Printing result to stdout. Use --output to specify output path.");
             finalCentroids.print();
@@ -117,6 +142,15 @@ public class KMeansOriginal {
             centroids = KMeansData.getDefaultCentroidDataSet(env);
         }
         return centroids;
+    }
+
+    private static DataSet<Integer> getCentroidIds(ParameterTool params, ExecutionEnvironment env) {
+        List<Integer> indexes = new ArrayList<>();
+        int k = params.getInt("k");
+        for (int i = 0; i < k; i++) {
+            indexes.add(i + 1);
+        }
+        return env.fromCollection(indexes);
     }
 
     private static DataSet<Point> getPointDataSet(ParameterTool params, ExecutionEnvironment env) {
@@ -166,7 +200,7 @@ public class KMeansOriginal {
                     closestCentroidId = centroid.id;
                 }
             }
-
+            // System.out.println(String.format("Emitting %d ", closestCentroidId));
             // emit a new record with the center id and the data point.
             return new Tuple2<>(closestCentroidId, p);
         }

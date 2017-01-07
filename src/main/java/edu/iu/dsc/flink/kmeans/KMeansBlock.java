@@ -12,7 +12,6 @@ import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
-import org.apache.hadoop.io.ObjectWritable;
 
 import java.util.*;
 
@@ -41,14 +40,11 @@ public class KMeansBlock {
           @Override
           public void combine(Iterable<Tuple2<Integer, Point>> iterable,
                               Collector<Tuple2<Integer, Point>> collector) throws Exception {
-            long startTime = System.nanoTime();
             Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
             Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
-            int index = -1;
+            int index;
             int count;
-            long time = 0;
-            long reductionTime = 0;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
               index = p.f0;
@@ -65,18 +61,13 @@ public class KMeansBlock {
               count++;
               centroid.x += p.f1.x;
               centroid.y += p.f1.y;
-              time = p.f1.time;
-              reductionTime = p.f1.reductionTime;
 
-              counts.remove(p.f0);
               counts.put(p.f0, count);
             }
-            long endTime = System.nanoTime();
-            reductionTime += endTime - startTime;
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
               collector.collect(new Tuple2<Integer, Point>(ce.getKey(),
-                  new Point(ce.getValue().x / c, ce.getValue().y / c, time, reductionTime)));
+                  new Point(ce.getValue().x / c, ce.getValue().y / c)));
             }
           }
         })
@@ -85,14 +76,11 @@ public class KMeansBlock {
           @Override
           public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
                              Collector<Centroid> collector) throws Exception {
-            long startTime = System.nanoTime();
             Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
             Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
-            int index = -1;
-            int count = 0;
-            long time = 0;
-            long reductionTime = 0;
+            int index;
+            int count;
             while (it.hasNext()) {
               Tuple2<Integer, Point> p = it.next();
               index = p.f0;
@@ -109,17 +97,13 @@ public class KMeansBlock {
               count++;
               centroid.x += p.f1.x;
               centroid.y += p.f1.y;
-              time = p.f1.time;
-              reductionTime = p.f1.reductionTime;
 
               counts.remove(p.f0);
               counts.put(p.f0, count);
             }
-            long endTime = System.nanoTime();
-            reductionTime += endTime - startTime;
             for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c, time, reductionTime));
+              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
             }
           }
         });
@@ -174,9 +158,7 @@ public class KMeansBlock {
   public static final class SelectNearestCenter extends RichFlatMapFunction<PointBlock, Tuple2<Integer, Point>> {
     private Collection<Centroid> centroids;
     private Map<Integer, Point> centroidMap;
-    private Map<Integer, Integer> counts;
-    private Map<Integer, Long> currentTimes;
-    private int index;
+    private Map<Integer, Integer> point;
     /**
      * Reads the centroid values from a broadcast variable into a collection.
      */
@@ -184,24 +166,18 @@ public class KMeansBlock {
     public void open(Configuration parameters) throws Exception {
       this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
       centroidMap = new HashMap<Integer, Point>();
-      counts = new HashMap<Integer, Integer>();
-      currentTimes = new HashMap<Integer, Long>();
-      index = getRuntimeContext().getIndexOfThisSubtask();
+      point = new HashMap<Integer, Integer>();
 
       for (Centroid c : centroids) {
         centroidMap.put(c.id, new Point(0, 0));
-        counts.put(c.id, 0);
-        currentTimes.put(c.id, c.time);
+        point.put(c.id, 0);
       }
-      //System.out.println("No of centroids: " + centroids.size());
     }
 
     @Override
     public void flatMap(PointBlock block, Collector<Tuple2<Integer, Point>> collector) throws Exception {
-      long time = System.nanoTime();
       // check all cluster centers
       List<Point> points = block.points;
-      long startTime = System.currentTimeMillis();
       for (Point p : points) {
         double minDistance = Double.MAX_VALUE;
         int closestCentroidId = -1;
@@ -222,22 +198,19 @@ public class KMeansBlock {
           centroidPoint.x += p.x;
           centroidPoint.y += p.y;
 
-          count = counts.get(closestCentroidId);
+          count = point.get(closestCentroidId);
           count++;
-          counts.remove(closestCentroidId);
-          counts.put(closestCentroidId, count);
+          point.remove(closestCentroidId);
+          point.put(closestCentroidId, count);
         }
       }
-      // System.out.println(index +"," + centroids.size() + "," + (System.currentTimeMillis() - startTime));
       // emit a new record with the center id and the data point.
       for (Map.Entry<Integer, Point> ce : centroidMap.entrySet()) {
-        int c = counts.get(ce.getKey());
-        long currentTime = currentTimes.get(ce.getKey());
-        long accuTime = System.nanoTime() - time + currentTime;
-        if (c == 0) {
-          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(0, 0, accuTime)));
+        int count = point.get(ce.getKey());
+        if (count == 0) {
+          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(0, 0)));
         } else {
-          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / c, ce.getValue().y / c, accuTime)));
+          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / count, ce.getValue().y / count)));
         }
       }
     }

@@ -9,28 +9,11 @@ public class Point implements Serializable {
 
     public double x, y;
 
-    public transient long time;
-
-    public transient long reductionTime;
-
     public Point() {}
 
     public Point(double x, double y) {
         this.x = x;
         this.y = y;
-    }
-
-    public Point(double x, double y, long time) {
-        this.x = x;
-        this.y = y;
-        this.time = time;
-    }
-
-    public Point(double x, double y, long time, long reductionTime) {
-        this.x = x;
-        this.y = y;
-        this.time = time;
-        this.reductionTime = reductionTime;
     }
 
     public Point add(Point other) {
@@ -55,6 +38,6 @@ public class Point implements Serializable {
 
     @Override
     public String toString() {
-        return x + " " + y + " " + ((double)time) + " " + ((double)reductionTime) / 1000000;
+        return x + " " + y;
     }
 }
