@@ -79,7 +79,7 @@ public class KMeansDataGenerator {
         final double stddev = params.getDouble("stddev", RELATIVE_STDDEV);
         final double range = params.getDouble("range", DEFAULT_VALUE_RANGE);
         final long firstSeed = params.getLong("seed", DEFAULT_SEED);
-        final int dimentionality = params.getInt("seed", DIMENSIONALITY);
+        final int dimentionality = params.getInt("d", DIMENSIONALITY);
 
 
         final double absoluteStdDev = stddev * range;
