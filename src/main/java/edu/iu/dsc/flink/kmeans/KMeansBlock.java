@@ -172,8 +172,7 @@ public class KMeansBlock {
       point = new HashMap<Integer, Integer>();
 
       for (Centroid2 c : centroids) {
-        double []zeros;
-        zeros = new double[100];
+        double []zeros = new double[100];
         centroidMap.put(c.id, new Point2(zeros));
         point.put(c.id, 0);
       }

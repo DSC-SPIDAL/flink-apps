@@ -417,6 +417,8 @@ public class PointInputFormat extends FileInputFormat<PointBlock> {
                 }
                 Point2 p = new Point2(values);
                 pointBlock.points.add(p);
+            } else {
+                throw new RuntimeException("Invalid points present");
             }
         }
         this.end = true;
