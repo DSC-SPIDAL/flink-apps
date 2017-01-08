@@ -21,6 +21,11 @@ public class Centroid extends Point {
         this.mapId = mapId;
     }
 
+    public Centroid(int id, double[] values) {
+        super(values);
+        this.id = id;
+    }
+
     public Centroid(int id, Point p) {
         super(p.x, p.y);
         this.id = id;
