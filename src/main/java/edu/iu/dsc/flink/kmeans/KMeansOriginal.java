@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
@@ -151,24 +150,6 @@ public class KMeansOriginal {
             System.out.println("Printing result to stdout. Use --output to specify output path.");
             finalCentroids.print();
         }
-    }
-
-    // *************************************************************************
-    //     DATA SOURCE READING (POINTS AND CENTROIDS)
-    // *************************************************************************
-
-    private static DataSet<Centroid> getCentroidDataSet(ParameterTool params, ExecutionEnvironment env) {
-        DataSet<Centroid> centroids;
-        if (params.has("centroids")) {
-            centroids = env.readCsvFile(params.get("centroids"))
-                    .fieldDelimiter(" ")
-                    .pojoType(Centroid.class, "id", "x", "y");
-        } else {
-            System.out.println("Executing K-Means example with default centroid data set.");
-            System.out.println("Use --centroids to specify file input.");
-            centroids = KMeansData.getDefaultCentroidDataSet(env);
-        }
-        return centroids;
     }
 
     private static DataSet<Integer> getCentroidIds(ParameterTool params, ExecutionEnvironment env) {

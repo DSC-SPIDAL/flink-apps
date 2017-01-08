@@ -24,11 +24,8 @@ public class Centroid2 extends Point2 implements Serializable {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-
-    Centroid centroid = (Centroid) o;
-
+    Centroid2 centroid = (Centroid2) o;
     return id == centroid.id;
-
   }
 
   @Override

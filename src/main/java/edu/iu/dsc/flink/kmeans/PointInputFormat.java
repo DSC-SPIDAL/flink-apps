@@ -410,8 +410,12 @@ public class PointInputFormat extends FileInputFormat<PointBlock> {
         while (readLine()) {
             String lineAsString = new String(this.currBuffer, this.currOffset, this.currLen);
             String splits[] = lineAsString.trim().split(" ");
-            if (splits.length == 2) {
-                Point p = new Point(Double.parseDouble(splits[0]), Double.parseDouble(splits[1]));
+            if (splits.length == 100) {
+                double[] values = new double[splits.length];
+                for (int i = 0; i < splits.length; i++) {
+                    values[i] = Double.parseDouble(splits[i]);
+                }
+                Point2 p = new Point2(values);
                 pointBlock.points.add(p);
             }
         }

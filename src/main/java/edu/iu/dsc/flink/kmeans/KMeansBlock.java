@@ -1,9 +1,9 @@
 package edu.iu.dsc.flink.kmeans;
 
-import edu.iu.dsc.flink.kmeans.utils.KMeansData;
 import org.apache.flink.api.common.functions.GroupCombineFunction;
 import org.apache.flink.api.common.functions.GroupReduceFunction;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
+import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.java.DataSet;
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.operators.IterativeDataSet;
@@ -28,88 +28,101 @@ public class KMeansBlock {
     // get input data:
     // read the points and centroids from the provided paths or fall back to default data
     DataSet<PointBlock> points = getPointDataSet(params, env);
-    DataSet<Centroid> centroids = getCentroidDataSet(params, env);
+    DataSet<String> centroidLines = getDataSet(params.get("centroids"), env);
+    DataSet<Centroid2> centroids = centroidLines.map(new RichMapFunction<String, Centroid2>() {
+      @Override
+      public Centroid2 map (String s) throws Exception {
+        String[] split = s.split(" ");
+        double[] values = new double[split.length - 1];
+        for (int i = 1; i < split.length; i++) {
+          values[i - 1] = Double.parseDouble(split[i]);
+        }
+        return new Centroid2(Integer.parseInt(split[0]), values);
+      }
+    });
 
     // set number of bulk iterations for KMeans algorithm
-    IterativeDataSet<Centroid> loop = centroids.iterate(params.getInt("iterations", 10));
+    IterativeDataSet<Centroid2> loop = centroids.iterate(params.getInt("iterations", 10));
 
-    DataSet<Centroid> newCentroids = points
+    DataSet<Centroid2> newCentroids = points
         // compute closest centroid for each point
         .flatMap(new SelectNearestCenter()).withBroadcastSet(loop, "centroids").
-            groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point>, Tuple2<Integer, Point>>() {
+            groupBy(0).combineGroup(new GroupCombineFunction<Tuple2<Integer, Point2>, Tuple2<Integer, Point2>>() {
           @Override
-          public void combine(Iterable<Tuple2<Integer, Point>> iterable,
-                              Collector<Tuple2<Integer, Point>> collector) throws Exception {
-            Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+          public void combine(Iterable<Tuple2<Integer, Point2>> iterable,
+                              Collector<Tuple2<Integer, Point2>> collector) throws Exception {
+            Map<Integer, Centroid2> centroidMap = new HashMap<Integer, Centroid2>();
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
-            Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+            Iterator<Tuple2<Integer, Point2>> it = iterable.iterator();
             int index;
             int count;
             while (it.hasNext()) {
-              Tuple2<Integer, Point> p = it.next();
+              Tuple2<Integer, Point2> p = it.next();
               index = p.f0;
-              Centroid centroid;
+              Centroid2 centroid;
               if (centroidMap.containsKey(p.f0)) {
                 centroid = centroidMap.get(p.f0);
                 centroidMap.get(p.f0);
                 count = counts.get(p.f0);
               } else {
-                centroid = new Centroid(index, 0, 0);
+                double []zeros;
+                zeros = new double[100];
+                centroid = new Centroid2(index, zeros);
                 centroidMap.put(p.f0, centroid);
                 count = 0;
               }
               count++;
-              centroid.x += p.f1.x;
-              centroid.y += p.f1.y;
+              centroid.add(p.f1);
 
               counts.put(p.f0, count);
             }
-            for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+            for (Map.Entry<Integer, Centroid2> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              collector.collect(new Tuple2<Integer, Point>(ce.getKey(),
-                  new Point(ce.getValue().x / c, ce.getValue().y / c)));
+              collector.collect(new Tuple2<Integer, Point2>(ce.getKey(),
+                  ce.getValue().div(c)));
             }
           }
         })
         // count and sum point coordinates for each centroid
-        .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point>, Centroid>() {
+        .groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer, Point2>, Centroid2>() {
           @Override
-          public void reduce(Iterable<Tuple2<Integer, Point>> iterable,
-                             Collector<Centroid> collector) throws Exception {
-            Map<Integer, Centroid> centroidMap = new HashMap<Integer, Centroid>();
+          public void reduce(Iterable<Tuple2<Integer, Point2>> iterable,
+                             Collector<Centroid2> collector) throws Exception {
+            Map<Integer, Centroid2> centroidMap = new HashMap<Integer, Centroid2>();
             Map<Integer, Integer> counts = new HashMap<Integer, Integer>();
-            Iterator<Tuple2<Integer, Point>> it = iterable.iterator();
+            Iterator<Tuple2<Integer, Point2>> it = iterable.iterator();
             int index;
             int count;
             while (it.hasNext()) {
-              Tuple2<Integer, Point> p = it.next();
+              Tuple2<Integer, Point2> p = it.next();
               index = p.f0;
-              Centroid centroid;
+              Centroid2 centroid;
               if (centroidMap.containsKey(p.f0)) {
                 centroid = centroidMap.get(p.f0);
                 centroidMap.get(p.f0);
                 count = counts.get(p.f0);
               } else {
-                centroid = new Centroid(index, 0, 0);
+                double []zeros;
+                zeros = new double[100];
+                centroid = new Centroid2(index, zeros);
                 centroidMap.put(p.f0, centroid);
                 count = 0;
               }
               count++;
-              centroid.x += p.f1.x;
-              centroid.y += p.f1.y;
+              centroid.add(p.f1);
 
               counts.remove(p.f0);
               counts.put(p.f0, count);
             }
-            for (Map.Entry<Integer, Centroid> ce : centroidMap.entrySet()) {
+            for (Map.Entry<Integer, Centroid2> ce : centroidMap.entrySet()) {
               int c = counts.get(ce.getKey());
-              collector.collect(new Centroid(ce.getKey(), ce.getValue().x / c, ce.getValue().y / c));
+              collector.collect(new Centroid2(ce.getKey(), ce.getValue().div(c)));
             }
           }
         });
 
     // feed new centroids back into next iteration
-    DataSet<Centroid> finalCentroids = loop.closeWith(newCentroids);
+    DataSet<Centroid2> finalCentroids = loop.closeWith(newCentroids);
 
     // emit result
     if (params.has("output")) {
@@ -124,30 +137,20 @@ public class KMeansBlock {
     }
   }
 
-  private static DataSet<Centroid> getCentroidDataSet(ParameterTool params, ExecutionEnvironment env) {
-    DataSet<Centroid> centroids;
-    if (params.has("centroids")) {
-      centroids = env.readCsvFile(params.get("centroids"))
-          .fieldDelimiter(" ")
-          .pojoType(Centroid.class, "id", "x", "y").setParallelism(params.getInt("parallel", 1));
-      ;
-    } else {
-      System.out.println("Executing K-Means example with default centroid data set.");
-      System.out.println("Use --centroids to specify file input.");
-      centroids = KMeansData.getDefaultCentroidDataSet(env);
-    }
-    return centroids;
+  private static DataSet<String> getDataSet(String file, ExecutionEnvironment env) {
+    DataSet<String> points = null;
+    points = env.readTextFile(file);
+    return points;
   }
 
   private static DataSet<PointBlock> getPointDataSet(ParameterTool params, ExecutionEnvironment env) {
-    DataSet<PointBlock> points;
+    DataSet<PointBlock> points = null;
     if (params.has("points")) {
       // read points from CSV file
       points = env.readFile(new PointInputFormat(), params.get("points")).setParallelism(params.getInt("parallel", 1));
     } else {
       System.out.println("Executing K-Means example with default point data set.");
       System.out.println("Use --points to specify file input.");
-      points = KMeansData.getDefaultPointBlockDataSet(env);
     }
     return points;
   }
@@ -155,9 +158,9 @@ public class KMeansBlock {
   /**
    * Determines the closest cluster center for a data point.
    */
-  public static final class SelectNearestCenter extends RichFlatMapFunction<PointBlock, Tuple2<Integer, Point>> {
-    private Collection<Centroid> centroids;
-    private Map<Integer, Point> centroidMap;
+  public static final class SelectNearestCenter extends RichFlatMapFunction<PointBlock, Tuple2<Integer, Point2>> {
+    private Collection<Centroid2> centroids;
+    private Map<Integer, Point2> centroidMap;
     private Map<Integer, Integer> point;
     /**
      * Reads the centroid values from a broadcast variable into a collection.
@@ -165,23 +168,25 @@ public class KMeansBlock {
     @Override
     public void open(Configuration parameters) throws Exception {
       this.centroids = getRuntimeContext().getBroadcastVariable("centroids");
-      centroidMap = new HashMap<Integer, Point>();
+      centroidMap = new HashMap<Integer, Point2>();
       point = new HashMap<Integer, Integer>();
 
-      for (Centroid c : centroids) {
-        centroidMap.put(c.id, new Point(0, 0));
+      for (Centroid2 c : centroids) {
+        double []zeros;
+        zeros = new double[100];
+        centroidMap.put(c.id, new Point2(zeros));
         point.put(c.id, 0);
       }
     }
 
     @Override
-    public void flatMap(PointBlock block, Collector<Tuple2<Integer, Point>> collector) throws Exception {
+    public void flatMap(PointBlock block, Collector<Tuple2<Integer, Point2>> collector) throws Exception {
       // check all cluster centers
-      List<Point> points = block.points;
-      for (Point p : points) {
+      List<Point2> points = block.points;
+      for (Point2 p : points) {
         double minDistance = Double.MAX_VALUE;
         int closestCentroidId = -1;
-        for (Centroid centroid : centroids) {
+        for (Centroid2 centroid : centroids) {
           // compute distance
           double distance = p.euclideanDistance(centroid);
 
@@ -192,11 +197,10 @@ public class KMeansBlock {
           }
         }
 
-        Point centroidPoint = centroidMap.get(closestCentroidId);
+        Point2 centroidPoint = centroidMap.get(closestCentroidId);
         int count;
         if (centroidPoint != null) {
-          centroidPoint.x += p.x;
-          centroidPoint.y += p.y;
+          centroidPoint.add(p);
 
           count = point.get(closestCentroidId);
           count++;
@@ -205,12 +209,14 @@ public class KMeansBlock {
         }
       }
       // emit a new record with the center id and the data point.
-      for (Map.Entry<Integer, Point> ce : centroidMap.entrySet()) {
+      for (Map.Entry<Integer, Point2> ce : centroidMap.entrySet()) {
         int count = point.get(ce.getKey());
         if (count == 0) {
-          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(0, 0)));
+          double []zeros;
+          zeros = new double[100];
+          collector.collect(new Tuple2<Integer, Point2>(ce.getKey(), new Point2(zeros)));
         } else {
-          collector.collect(new Tuple2<Integer, Point>(ce.getKey(), new Point(ce.getValue().x / count, ce.getValue().y / count)));
+          collector.collect(new Tuple2<Integer, Point2>(ce.getKey(), ce.getValue().div(count)));
         }
       }
     }
