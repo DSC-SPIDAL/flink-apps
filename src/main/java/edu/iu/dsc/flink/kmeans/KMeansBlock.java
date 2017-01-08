@@ -106,7 +106,7 @@ public class KMeansBlock {
       finalCentroids.writeAsText(params.get("output"), FileSystem.WriteMode.OVERWRITE);
 
       // since file sinks are lazy, we trigger the execution explicitly
-      env.setParallelism(1);
+      // env.setParallelism(1);
       env.execute("KMeans Example");
       System.out.println("Total time: " + env.getLastJobExecutionResult().getNetRuntime());
     } else {
