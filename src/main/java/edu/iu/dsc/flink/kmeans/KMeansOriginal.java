@@ -143,7 +143,8 @@ public class KMeansOriginal {
         if (params.has("output")) {
             finalCentroids.writeAsText(params.get("output"), FileSystem.WriteMode.OVERWRITE);
 
-            // since file sinks are lazy, we trigger the execution explicitly
+            // since file sinks are lazy, we trigger the execution explicitly'
+            env.setParallelism(1);
             env.execute("KMeans Example");
             System.out.println(String.format("Total time: %d", env.getLastJobExecutionResult().getNetRuntime()));
         } else {
