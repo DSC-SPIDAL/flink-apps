@@ -67,7 +67,10 @@ public class KMeansOriginal {
         // set up execution environment
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
         env.getConfig().setGlobalJobParameters(params); // make parameters available in the web interface
-
+        System.out.println(String.format("Iterations %d", params.getInt("iterations")));
+        System.out.println(String.format("Centroids %s", params.get("centroids")));
+        System.out.println(String.format("Points %s", params.get("points")));
+        System.out.println(String.format("Points %d", params.getInt("k")));
         // get input data:
         // read the points and centroids from the provided paths or fall back to default data
         DataSet<Point2> points;
