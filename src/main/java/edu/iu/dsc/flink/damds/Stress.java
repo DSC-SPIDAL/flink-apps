@@ -67,7 +67,7 @@ public class Stress {
     double heatD, tmpD;
     for (int localRow = 0; localRow < blockRowCount; ++localRow){
       globalRow = localRow + rowStartIndex;
-      procLocalRow = globalRow - rowStartIndex;
+      procLocalRow = localRow;
       for (int globalCol = 0; globalCol < globalColCount; globalCol++) {
         origD = distances[procLocalRow * globalColCount + globalCol]
             * DAMDSUtils.INV_SHORT_MAX;
@@ -76,12 +76,17 @@ public class Stress {
           continue;
         }
         // System.out.printf("%d %d %d %d\n", globalCol, globalRow, targetDim, preX.length);
-        euclideanD = globalRow != globalCol ? DAMDSUtils.calculateEuclideanDist(
-            preX, globalRow , globalCol, targetDim) : 0.0;
-
-        heatD = origD - diff;
-        tmpD = origD >= diff ? heatD - euclideanD : -euclideanD;
-        sigma += weight * tmpD * tmpD;
+        try {
+          euclideanD = globalRow != globalCol ? DAMDSUtils.calculateEuclideanDist(
+              preX, globalRow, globalCol, targetDim) : 0.0;
+          heatD = origD - diff;
+          tmpD = origD >= diff ? heatD - euclideanD : -euclideanD;
+          sigma += weight * tmpD * tmpD;
+        } catch (ArrayIndexOutOfBoundsException e) {
+          String format = String.format("%d %d %d %d %d %d", globalRow, globalCol, procLocalRow, targetDim, rowStartIndex, localRow);
+          System.out.println(format);
+          throw new RuntimeException(format, e);
+        }
       }
     }
     return sigma;

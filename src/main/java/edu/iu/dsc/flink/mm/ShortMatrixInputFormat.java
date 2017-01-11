@@ -1,6 +1,7 @@
 package edu.iu.dsc.flink.mm;
 
 import org.apache.flink.hadoop.shaded.com.google.common.io.LittleEndianDataInputStream;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,10 @@ public class ShortMatrixInputFormat extends MatrixInputFormat<ShortMatrixBlock> 
     int length = (int)(this.splitLength / Short.BYTES);
     block = new ShortMatrixBlock();
 
-    block.setStart((int) this.getSplitStart() / (Short.BYTES * globalColumnCount));
+    block.setStart((int)(this.getSplitStart() / (Short.BYTES * globalColumnCount)));
+    if (block.getStart() < 0) {
+      throw new RuntimeException(String.format("Block start is negative %d ", block.getStart()));
+    }
     block.setBlockRows(rows);
     block.setIndex(splitIndex);
     block.setMatrixCols(globalColumnCount);
