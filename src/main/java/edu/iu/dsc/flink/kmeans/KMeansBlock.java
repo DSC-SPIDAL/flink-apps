@@ -125,7 +125,7 @@ public class KMeansBlock {
     DataSet<PointBlock> points = null;
     if (params.has("points")) {
       // read points from CSV file
-      points = env.readFile(new PointInputFormat(), params.get("points")).setParallelism(params.getInt("parallel", 1));
+      points = env.readFile(new PointInputFormat(params.getInt("d", 100)), params.get("points")).setParallelism(params.getInt("parallel", 1));
     } else {
       System.out.println("Executing K-Means example with default point data set.");
       System.out.println("Use --points to specify file input.");

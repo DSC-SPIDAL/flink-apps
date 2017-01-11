@@ -132,8 +132,10 @@ public class PointInputFormat extends FileInputFormat<PointBlock> {
     //  Constructors & Getters/setters for the configurable parameters
     // --------------------------------------------------------------------------------------------
 
-    public PointInputFormat() {
+    int d;
+    public PointInputFormat(int d) {
         super();
+        this.d = d;
     }
 
     protected PointInputFormat(Path filePath) {
@@ -410,7 +412,7 @@ public class PointInputFormat extends FileInputFormat<PointBlock> {
         while (readLine()) {
             String lineAsString = new String(this.currBuffer, this.currOffset, this.currLen);
             String splits[] = lineAsString.trim().split(" ");
-            if (splits.length == 100) {
+            if (splits.length == d) {
                 double[] values = new double[splits.length];
                 for (int i = 0; i < splits.length; i++) {
                     values[i] = Double.parseDouble(splits[i]);
