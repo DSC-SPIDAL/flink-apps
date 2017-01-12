@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 cp=../../target/flink-apps-0.1-jar-with-dependencies.jar
-outbase=/scratch/skamburu/data/kmeans
+outbase=/N/u/skamburu/data/kmeans/small_input
 k=$2
 p=$1
 d=$3

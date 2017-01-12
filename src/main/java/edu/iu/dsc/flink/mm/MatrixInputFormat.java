@@ -47,6 +47,10 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
         }
       }
       length = (q + (i < r ? 1 : 0)) * globalColumnCount * byteSize;
+      LOG.error(String.format("Block start %d length %d", start, length));
+      if (start < 0 || length < 0) {
+        throw new RuntimeException("stat negativve");
+      }
       FileInputSplit fis = new FileInputSplit(i, this.filePath, start, length, hosts.toArray(new String[hosts.size()]));
       splits[i] = fis;
       start += length;
@@ -64,6 +68,9 @@ public abstract class MatrixInputFormat<T> extends FileInputFormat<T> {
 
   @Override
   public void open(FileInputSplit fileSplit) throws IOException {
+    if (fileSplit.getStart() < 0) {
+      throw new RuntimeException("Negative split start");
+    }
     // This uses an input stream, later see how to change to
     // memory maps, will have to change nextRecord() method as well
     super.open(fileSplit);
