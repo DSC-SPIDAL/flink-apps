@@ -10,6 +10,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.core.fs.FileSystem;
 import org.apache.flink.util.Collector;
 
+import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Reduce extends Collective {
@@ -37,6 +39,7 @@ public class Reduce extends Collective {
         System.out.println(integer);
         for (CollectiveData d : data) {
           d.setTime(System.currentTimeMillis());
+          d.hostName = InetAddress.getLocalHost().getHostName();
           return new Tuple2<Integer, CollectiveData>(0, d);
         }
         return null;
@@ -44,9 +47,19 @@ public class Reduce extends Collective {
     }).withBroadcastSet(loop, "data").groupBy(0).reduceGroup(new GroupReduceFunction<Tuple2<Integer,CollectiveData>, CollectiveData>() {
        @Override
        public void reduce(Iterable<Tuple2<Integer, CollectiveData>> iterable, Collector<CollectiveData> collector) throws Exception {
+         String hostName = InetAddress.getLocalHost().getHostName();
+         long time = 0;
+         List<CollectiveData> list = new ArrayList<CollectiveData>();
         for (Tuple2<Integer, CollectiveData> t : iterable) {
           CollectiveData d = t.f1;
-          d.addTime(System.currentTimeMillis() - d.getTime());
+          if (d.hostName.equals(hostName)) {
+            time = d.getTime();
+          }
+          list.add(d);
+        }
+         long nowTime = System.currentTimeMillis();
+        for (CollectiveData d : list) {
+          d.addTime(nowTime - time);
           collector.collect(d);
         }
        }

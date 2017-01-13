@@ -10,6 +10,8 @@ public class CollectiveData implements Serializable {
 
   public long cumulativeTime;
 
+  public String hostName;
+
   public CollectiveData(List<Integer> list, long time) {
     this.list = list;
     this.time = time;
