@@ -10,11 +10,13 @@ public abstract class Collective {
   int size;
   int iterations;
   ExecutionEnvironment env;
+  String outFile;
 
-  public Collective(int size, int iterations, ExecutionEnvironment env) {
+  public Collective(int size, int iterations, ExecutionEnvironment env, String outFile) {
     this.size = size;
     this.iterations = iterations;
     this.env = env;
+    this.outFile = outFile;
   }
 
   public DataSet<CollectiveData> loadDataSet(int size, ExecutionEnvironment env) {
